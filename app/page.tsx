@@ -23,33 +23,42 @@ export default async function HomePage() {
   return (
     <main id="contenido" className="fast-page home-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <div className="flavor-ticker" aria-hidden="true">
+        <span>BURGERS · PIZZA · COMBOS · HECHO AL MOMENTO ·</span>
+        <span>BURGERS · PIZZA · COMBOS · HECHO AL MOMENTO ·</span>
+      </div>
       <section className="fast-hero" aria-labelledby="welcome-title">
         <Image src="/images/fast-food/hero.webp" alt="Hamburguesas con vegetales frescos y aros de cebolla" fill priority unoptimized sizes="(max-width: 760px) 100vw, 1120px" />
-        <div className="fast-hero__overlay"><p>Bienvenido</p><h1 id="welcome-title">Descubre nuestro menú</h1><Link href="/menu">Ordenar ahora <ArrowRight aria-hidden="true" /></Link></div>
+        <div className="fast-hero__overlay">
+          <p>Santiago · abierto todos los días</p>
+          <h1 id="welcome-title">Hambre en serio.<br /><em>Sabor sin vueltas.</em></h1>
+          <Link href="/menu">Ver el menú <ArrowRight aria-hidden="true" /></Link>
+        </div>
+        <div className="hero-price"><small>BURGERS</small><strong>DESDE</strong><b>RD$350</b></div>
+        <p className="hero-side-note">CALIENTE · RÁPIDO · BUENO</p>
       </section>
 
       <section className="welcome-copy">
-        <p className="section-kicker">Hecho al momento</p>
-        <h2>El antojo que siempre cae bien.</h2>
-        <p>{restaurant.description} Hamburguesas jugosas, pizzas doradas y combos listos para compartir.</p>
-        <div className="quick-facts"><span><Clock3 aria-hidden="true" /> Servicio rápido</span><span><MapPin aria-hidden="true" /> Santiago</span></div>
+        <span className="section-number">01</span>
+        <div><p className="section-kicker">Hecho al momento</p><h2>No es comida de paso.<br />Es comida para volver.</h2></div>
+        <div className="welcome-copy__body"><p>{restaurant.description} Hamburguesas jugosas, pizzas doradas y combos listos para compartir.</p><div className="quick-facts"><span><Clock3 aria-hidden="true" /> Servicio rápido</span><span><MapPin aria-hidden="true" /> Santiago</span></div></div>
       </section>
 
       {featured.length > 0 && <section className="popular-section" aria-labelledby="popular-title">
-        <header><div><p className="section-kicker">Los favoritos</p><h2 id="popular-title">Pide algo bueno</h2></div><Link href="/menu">Ver menú completo <ArrowRight aria-hidden="true" /></Link></header>
+        <header><div><p className="section-kicker">Los que mandan</p><h2 id="popular-title">Tus próximos favoritos.</h2></div><Link href="/menu">Ver todo el menú <ArrowRight aria-hidden="true" /></Link></header>
         <div className="popular-grid">
-          {featured.slice(0, 4).map((item) => <Link href={`/menu?plato=${item.slug}#${item.categorySlug}`} className="popular-item" key={item.id}>
+          {featured.slice(0, 4).map((item, index) => <Link href={`/menu?plato=${item.slug}#${item.categorySlug}`} className="popular-item" key={item.id}>
             <span className="popular-item__image"><Image src={item.imageUrl} alt="" fill sizes="(max-width: 760px) 120px, 260px" /></span>
-            <span><small>{item.categoryName}</small><strong>{item.name}</strong><p>{item.shortDescription}</p></span>
+            <span><small>0{index + 1} · {item.categoryName}</small><strong>{item.name}</strong><p>{item.shortDescription}</p></span>
             <b>{formatPrice(item.priceCents)}</b>
           </Link>)}
         </div>
       </section>}
 
       <section className="find-us" aria-labelledby="find-us-title">
-        <header><div><p className="section-kicker">Visítanos</p><h2 id="find-us-title">Encuéntranos</h2></div><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`} target="_blank" rel="noreferrer">Abrir en mapas <ArrowRight aria-hidden="true" /></a></header>
+        <header><div><p className="section-kicker">Ven con hambre</p><h2 id="find-us-title">Aquí empieza<br />lo bueno.</h2></div><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`} target="_blank" rel="noreferrer">Cómo llegar <ArrowRight aria-hidden="true" /></a></header>
         <div className="find-us__map"><Image src="/images/fast-food/map.webp" alt="Mapa de Santiago de los Caballeros" fill sizes="(max-width: 760px) 100vw, 1120px" /></div>
-        <p><MapPin aria-hidden="true" /> {restaurant.address}</p>
+        <div className="find-us__address"><MapPin aria-hidden="true" /><p><span>Nuestro local</span>{restaurant.address}</p><strong>TE ESPERAMOS</strong></div>
       </section>
     </main>
   );
