@@ -24,7 +24,7 @@ Examples for this project:
 
 ```text
 feat(menu): add searchable mobile dish catalogue
-style(home): simplify the restaurant landing page
+style(home): align the mobile layout with the Figma direction
 fix(menu): keep category tabs visible while scrolling
 refactor(seed): reference optimized WebP assets directly
 test(menu): cover keyboard dialog navigation
@@ -34,10 +34,10 @@ docs(repo): explain local setup and commit conventions
 Add a body when the reason or trade-off is not obvious:
 
 ```text
-refactor(ordering): replace the local cart with WhatsApp inquiry
+refactor(ordering): send completed carts through WhatsApp
 
-The restaurant confirms availability manually, so persistent cart state would
-add complexity without completing a real checkout flow.
+The business confirms orders manually, so WhatsApp provides a complete handoff
+without introducing payment infrastructure prematurely.
 ```
 
 For breaking changes, add `!` and a footer:

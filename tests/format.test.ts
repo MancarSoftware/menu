@@ -2,6 +2,6 @@ import { describe, expect, it } from "vitest";
 import { formatPrice, slugify } from "@/lib/format";
 
 describe("formatting", () => {
-  it("normalizes accented dish names into stable slugs", () => expect(slugify("  Cacao 70 / Sal de Mira ")).toBe("cacao-70-sal-de-mira"));
-  it("formats prices as Ecuadorian US dollars", () => expect(formatPrice(1550)).toContain("15,50"));
+  it("normalizes accented product names into stable slugs", () => expect(slugify("  Sándwich Clásico / Pollo ")).toBe("sandwich-clasico-pollo"));
+  it("formats prices as Dominican pesos", () => expect(formatPrice(35000)).toBe("RD$350"));
 });

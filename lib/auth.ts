@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 
-const COOKIE_NAME = "brasa_admin_session";
+const COOKIE_NAME = "el_bueno_admin_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
 
 function getSecret() {

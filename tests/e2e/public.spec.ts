@@ -1,44 +1,58 @@
 import { expect, test } from "@playwright/test";
 
-test("homepage leads into an interactive, searchable menu", async ({ page }) => {
+test("homepage leads into the searchable fast-food menu", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Fuego de origen/ })).toBeVisible();
-  await page.getByRole("link", { name: /Explorar la carta/ }).click();
+  await expect(page.getByRole("heading", { name: "Descubre nuestro menú" })).toBeVisible();
+  await page.getByRole("link", { name: "Ordenar ahora" }).click();
   await expect(page).toHaveURL(/\/menu/);
   await expect(page.getByRole("heading", { name: "Menú" })).toBeVisible();
-  const search = page.getByPlaceholder("Buscar platos o ingredientes...");
-  await search.fill("pulpo");
-  await expect(page.getByRole("button", { name: /Pulpo a la brasa/ })).toBeVisible();
-  await page.getByRole("button", { name: /Pulpo a la brasa/ }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Pulpo a la brasa" })).toBeVisible();
+
+  const search = page.getByPlaceholder("Buscar platos...");
+  await search.fill("doble");
+  const product = page.getByRole("button", { name: "Ver detalles de Hamburguesa Doble" });
+  await expect(product).toBeVisible();
+  await product.click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Hamburguesa Doble" })).toBeVisible();
   await page.getByRole("button", { name: "Cerrar detalle" }).click();
-  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(dialog).not.toBeVisible();
 });
 
-test("mobile menu exposes persistent primary actions without horizontal overflow", async ({ page }, testInfo) => {
+test("mobile navigation stays visible without horizontal overflow", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobile-only navigation check");
   await page.goto("/menu");
-  await expect(page.getByRole("navigation", { name: "Acciones rápidas" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Navegación principal" })).toBeVisible();
   const dimensions = await page.evaluate(() => ({ viewport: window.innerWidth, content: document.documentElement.scrollWidth }));
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
 });
 
-test("menu category navigation remains usable", async ({ page }) => {
+test("menu categories remain usable", async ({ page }) => {
   await page.goto("/menu");
-  await page.getByRole("link", { name: /Fuego lento/ }).first().click();
-  await expect(page.locator("#fuego-lento")).toBeInViewport();
+  await page.getByRole("link", { name: "Pizzas", exact: true }).click();
+  await expect(page.locator("#pizzas")).toBeInViewport();
 });
 
-test("dish details support keyboard focus and Escape", async ({ page }) => {
+test("product details support keyboard focus and Escape", async ({ page }) => {
   await page.goto("/menu");
-  const firstDish = page.locator(".menu-dish").first();
-  await firstDish.focus();
+  const firstProduct = page.locator(".menu-product__detail").first();
+  await firstProduct.focus();
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await expect(page.getByRole("button", { name: "Cerrar detalle" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
-  await expect(firstDish).toBeFocused();
+  await expect(firstProduct).toBeFocused();
+});
+
+test("customers can add an item and prepare a WhatsApp order", async ({ page }) => {
+  await page.goto("/menu");
+  await page.getByRole("button", { name: "Agregar Hamburguesa Clásica al carrito" }).click();
+  await page.getByRole("link", { name: /Carrito/ }).click();
+  await expect(page.getByRole("heading", { name: "Tu pedido" })).toBeVisible();
+  await expect(page.getByText("Hamburguesa Clásica", { exact: true })).toBeVisible();
+  await page.getByLabel("Dirección de envío").fill("Calle Duarte 123");
+  await expect(page.getByRole("link", { name: "Ordenar por WhatsApp" })).toHaveAttribute("href", /wa\.me/);
 });

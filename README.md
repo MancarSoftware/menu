@@ -1,13 +1,13 @@
-# Brasa Norte
+# El Bueno
 
-A mobile-first digital menu and lightweight content manager for a contemporary Ecuadorian restaurant. The public experience prioritizes fast discovery, clear dietary information, accessible dish details, and direct WhatsApp contact. The protected admin area manages restaurant information, categories, dishes, availability, ordering, and images.
+A mobile-first fast-food menu inspired by the supplied Figma model. Customers can browse burgers, pizzas, combos, and drinks; search or filter products; inspect details; build a persistent cart; and send a complete delivery order through WhatsApp. A protected admin area manages the business profile, categories, products, availability, ordering, and images.
 
 ## Stack
 
 - Next.js 16, React 19, and TypeScript
 - Prisma with SQLite for local development
 - Zod validation and signed session cookies
-- Vitest for unit/integration tests
+- Vitest for unit and integration tests
 - Playwright for desktop and mobile end-to-end coverage
 
 ## Local setup
@@ -35,8 +35,8 @@ npm run build
 
 ## Images
 
-Local development stores uploads in `public/uploads`. Production can use Cloudinary by setting the optional variables in `.env.example`. Generated restaurant imagery is committed as optimized WebP files in `public/images`.
+Local development stores uploads in `public/uploads`. Production can use Cloudinary by setting the optional variables in `.env.example`. Optimized WebP assets used by the public experience live in `public/images/fast-food`.
 
 ## Commit conventions
 
-Commit messages use Conventional Commits. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the format, allowed types, rationale, and project-specific examples.
+Use Conventional Commits. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the format and project-specific examples.

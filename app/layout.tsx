@@ -1,26 +1,25 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans } from "next/font/google";
-import { SiteHeader } from "@/components/site-header";
+import { Poppins } from "next/font/google";
+import { AppChrome } from "@/components/app-chrome";
+import { CartProvider } from "@/features/cart/cart-context";
 import "./globals.css";
 import "./public.css";
 
-const display = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-display", weight: ["400", "500", "600"], display: "swap" });
-const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500", "600"], display: "swap" });
+const poppins = Poppins({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500", "600", "700"], display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://brasanorte.ec"),
-  title: { default: "Brasa Norte — Cocina de altura", template: "%s — Brasa Norte" },
-  description: "Cocina ecuatoriana contemporánea en La Floresta, Quito. Fuego, producto de altura y memoria.",
-  openGraph: { title: "Brasa Norte", description: "Cocina de altura, fuego de origen.", type: "website", locale: "es_EC" },
+  metadataBase: new URL("https://elbueno.do"),
+  title: { default: "El Bueno — Hamburguesas y pizzas", template: "%s — El Bueno" },
+  description: "Hamburguesas, pizzas y combos hechos al momento en Santiago.",
+  openGraph: { title: "El Bueno", description: "Comida rápida, fresca y hecha al momento.", type: "website", locale: "es_DO" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" data-scroll-behavior="smooth" className={`${display.variable} ${sans.variable}`}>
+    <html lang="es" data-scroll-behavior="smooth" className={poppins.variable}>
       <body>
         <a className="skip-link" href="#contenido">Saltar al contenido</a>
-        <SiteHeader />
-        {children}
+        <CartProvider><AppChrome>{children}</AppChrome></CartProvider>
       </body>
     </html>
   );

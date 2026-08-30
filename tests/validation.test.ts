@@ -10,7 +10,7 @@ describe("runtime validation", () => {
     expect(result.success).toBe(false);
   });
   it("accepts a complete restaurant contract", () => {
-    const result = restaurantSchema.safeParse({ name: "Brasa", tagline: "Fuego y origen", description: "Una descripción extensa de la propuesta gastronómica.", address: "Calle 1 y 2", phone: "+593 2000000", whatsapp: "593999999999", email: "mesa@example.com", openingHours: [{ days: "Martes", hours: "18:00 — 22:00" }], socialLinks: { instagram: "https://instagram.com" } });
+    const result = restaurantSchema.safeParse({ name: "El Bueno", tagline: "Rápido, fresco y sabroso", description: "Hamburguesas, pizzas y combos preparados al momento.", address: "Calle Duarte 123", phone: "+1 809-555-0100", whatsapp: "18095550100", email: "hola@example.com", openingHours: [{ days: "Lunes a domingo", hours: "11:00 — 23:00" }], socialLinks: { instagram: "https://instagram.com" } });
     expect(result.success).toBe(true);
   });
 });

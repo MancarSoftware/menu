@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
     if (cloudName && apiKey && apiSecret) {
       const timestamp = Math.floor(Date.now() / 1000);
-      const folder = "brasa-norte/menu";
+      const folder = "el-bueno/menu";
       const signature = createHash("sha1").update(`folder=${folder}&timestamp=${timestamp}${apiSecret}`).digest("hex");
       const cloudData = new FormData();
       cloudData.set("file", file); cloudData.set("api_key", apiKey); cloudData.set("timestamp", String(timestamp)); cloudData.set("folder", folder); cloudData.set("signature", signature);
