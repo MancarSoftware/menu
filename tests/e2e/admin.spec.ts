@@ -1,0 +1,32 @@
+import { expect, test } from "@playwright/test";
+
+test("admin can publish, update, disable and remove a dish", async ({ page }) => {
+  const dishName = `Plato QA ${Date.now()}`;
+  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) throw new Error("Admin test credentials are not configured.");
+  await page.goto("/admin/login");
+  await page.getByLabel("Correo").fill(process.env.ADMIN_EMAIL);
+  await page.getByLabel("Contraseña").fill(process.env.ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "Entrar al panel" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  await page.getByRole("button", { name: "Platos", exact: true }).click();
+  await page.getByLabel("Nombre").fill(dishName);
+  await page.getByLabel("Precio USD").fill("12.50");
+  await page.getByLabel("Descripción breve").fill("Plato temporal para verificar el flujo completo.");
+  await page.getByLabel("Descripción completa").fill("Preparación temporal creada por la prueba de integración de administración.");
+  await page.getByLabel(/Ingredientes/).fill("Maíz, Ají, Hierbas");
+  await page.getByRole("button", { name: "Publicar plato" }).click();
+  await expect(page.getByText("Plato creado y publicado.")).toBeVisible();
+  await page.getByPlaceholder("Buscar plato").fill(dishName);
+  await expect(page.getByText(dishName, { exact: true }).last()).toBeVisible();
+  await page.getByRole("button", { name: `Editar ${dishName}` }).click();
+  await page.getByLabel("Precio USD").fill("14.00");
+  await page.getByRole("button", { name: "Guardar plato" }).click();
+  await expect(page.getByText("Plato actualizado y publicado.")).toBeVisible();
+  await page.getByPlaceholder("Buscar plato").fill(dishName);
+  await page.getByRole("button", { name: "Disponible" }).click();
+  await expect(page.getByText("Plato marcado como no disponible.")).toBeVisible();
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.getByPlaceholder("Buscar plato").fill(dishName);
+  await page.getByRole("button", { name: `Eliminar ${dishName}` }).click();
+  await expect(page.getByText("Plato eliminado.")).toBeVisible();
+});

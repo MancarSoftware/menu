@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id           Int      @id @default(1)
+  name         String
+  tagline      String
+  description  String
+  address      String
+  phone        String
+  whatsapp     String
+  email        String
+  openingHours String
+  socialLinks  String
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+model MenuCategory {
+  id           String     @id @default(cuid())
+  name         String
+  slug         String     @unique
+  description  String
+  displayOrder Int        @default(0)
+  isActive     Boolean    @default(true)
+  items        MenuItem[]
+  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime   @default(now())
+
+  @@index([isActive, displayOrder])
+}
+
+model MenuItem {
+  id                    String       @id @default(cuid())
+  name                  String
+  slug                  String       @unique
+  shortDescription      String
+  description           String
+  priceCents             Int
+  imageUrl               String
+  isAvailable            Boolean      @default(true)
+  isFeatured             Boolean      @default(false)
+  isChefRecommendation   Boolean      @default(false)
+  displayOrder           Int          @default(0)
+  dietaryTags            String       @default("[]")
+  ingredients            String       @default("[]")
+  allergens              String       @default("[]")
+  spicyLevel             Int?
+  categoryId             String
+  category               MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  updatedAt               DateTime      @updatedAt
+  createdAt               DateTime      @default(now())
+
+  @@index([categoryId, isAvailable, displayOrder])
+  @@index([isFeatured, isAvailable])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("ADMIN")
+  lastLoginAt  DateTime?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
