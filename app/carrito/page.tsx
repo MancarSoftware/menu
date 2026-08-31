@@ -6,5 +6,5 @@ export const metadata: Metadata = { title: "Carrito" };
 
 export default async function CartRoute() {
   const restaurant = await getRestaurant();
-  return <CartPage whatsapp={restaurant.whatsapp} />;
+  return <CartPage whatsapp={restaurant.whatsapp} pickupAddress={restaurant.address} city={restaurant.city} />;
 }
