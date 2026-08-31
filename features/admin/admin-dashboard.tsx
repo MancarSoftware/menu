@@ -3,24 +3,17 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Check, ChevronRight, CircleOff, Edit3, ExternalLink, ImagePlus, LayoutList, LogOut, MapPinned, Plus, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
-import type { MenuCategoryView, MenuItemView, RestaurantView } from "@/lib/domain";
+import { ArrowDown, ArrowUp, Check, ChefHat, ChevronRight, CircleOff, Edit3, ExternalLink, ImagePlus, LayoutList, LogOut, MapPinned, Plus, QrCode, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
+import type { DiningTableView, MenuCategoryView, MenuItemView, OrderView, RestaurantView } from "@/lib/domain";
 import { formatPrice, slugify } from "@/lib/format";
+import { requestJson, SessionExpiredError } from "./admin-api";
+import { KitchenBoard } from "./kitchen-board";
+import { TableManager } from "./table-manager";
 
-type Tab = "overview" | "categories" | "items" | "restaurant";
+type Tab = "overview" | "orders" | "tables" | "categories" | "items" | "restaurant";
 type Notice = { kind: "success" | "error"; message: string } | null;
 
-class SessionExpiredError extends Error {}
-
-async function requestJson(url: string, method: string, body?: unknown) {
-  const response = await fetch(url, { method, headers: body !== undefined ? { "Content-Type": "application/json" } : undefined, body: body !== undefined ? JSON.stringify(body) : undefined });
-  const result = await response.json() as { error?: string };
-  if (response.status === 401) throw new SessionExpiredError("La sesión expiró.");
-  if (!response.ok) throw new Error(result.error ?? "No pudimos completar la operación.");
-  return result;
-}
-
-export function AdminDashboard({ categories, restaurant, userEmail }: { categories: MenuCategoryView[]; restaurant: RestaurantView; userEmail: string }) {
+export function AdminDashboard({ categories, restaurant, tables, orders, userEmail }: { categories: MenuCategoryView[]; restaurant: RestaurantView; tables: DiningTableView[]; orders: OrderView[]; userEmail: string }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
   const [notice, setNotice] = useState<Notice>(null);
@@ -41,6 +34,8 @@ export function AdminDashboard({ categories, restaurant, userEmail }: { categori
         <div><p className="eyebrow">El Bueno</p><strong>Panel del menú</strong></div>
         <nav aria-label="Secciones de administración">
           <button data-active={tab === "overview"} onClick={() => setTab("overview")}><LayoutList aria-hidden="true" />Resumen</button>
+          <button data-active={tab === "orders"} onClick={() => setTab("orders")}><ChefHat aria-hidden="true" />Cocina</button>
+          <button data-active={tab === "tables"} onClick={() => setTab("tables")}><QrCode aria-hidden="true" />Mesas y QR</button>
           <button data-active={tab === "categories"} onClick={() => setTab("categories")}><ChevronRight aria-hidden="true" />Categorías</button>
           <button data-active={tab === "items"} onClick={() => setTab("items")}><UtensilsCrossed aria-hidden="true" />Productos</button>
           <button data-active={tab === "restaurant"} onClick={() => setTab("restaurant")}><MapPinned aria-hidden="true" />Restaurante</button>
@@ -49,10 +44,12 @@ export function AdminDashboard({ categories, restaurant, userEmail }: { categori
       </aside>
 
       <section className="admin-workspace">
-        <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
+        <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "orders" ? "Cocina" : tab === "tables" ? "Mesas" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
         {notice && <div className="admin-notice" data-kind={notice.kind} role="status">{notice.kind === "success" ? <Check aria-hidden="true" /> : <CircleOff aria-hidden="true" />}{notice.message}<button onClick={() => setNotice(null)} aria-label="Cerrar aviso"><X aria-hidden="true" /></button></div>}
 
         {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} onNavigate={setTab} />}
+        {tab === "orders" && <KitchenBoard initialOrders={orders} />}
+        {tab === "tables" && <TableManager initialTables={tables} />}
         {tab === "categories" && <CategoryManager categories={categories} run={run} />}
         {tab === "items" && <ItemManager categories={categories} run={run} />}
         {tab === "restaurant" && <RestaurantManager restaurant={restaurant} run={run} />}

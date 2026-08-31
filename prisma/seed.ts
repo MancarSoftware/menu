@@ -47,6 +47,15 @@ async function main() {
   };
 
   await prisma.restaurant.upsert({ where: { id: 1 }, update: restaurantData, create: { id: 1, ...restaurantData } });
+
+  for (let number = 1; number <= 8; number += 1) {
+    await prisma.diningTable.upsert({
+      where: { number },
+      update: { name: `Mesa ${number}`, capacity: number <= 2 ? 2 : 4, isActive: true },
+      create: { number, code: `mesa-${String(number).padStart(2, "0")}`, name: `Mesa ${number}`, capacity: number <= 2 ? 2 : 4, status: "AVAILABLE", isActive: true },
+    });
+  }
+
   await prisma.menuItem.deleteMany();
   await prisma.menuCategory.deleteMany();
 

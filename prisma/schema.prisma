@@ -58,11 +58,80 @@ model MenuItem {
   spicyLevel             Int?
   categoryId             String
   category               MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems             OrderItem[]
   updatedAt               DateTime      @updatedAt
   createdAt               DateTime      @default(now())
 
   @@index([categoryId, isAvailable, displayOrder])
   @@index([isFeatured, isAvailable])
+}
+
+model DiningTable {
+  id        String          @id @default(cuid())
+  code      String          @unique
+  number    Int             @unique
+  name      String
+  capacity  Int             @default(4)
+  status    String          @default("AVAILABLE")
+  isActive  Boolean         @default(true)
+  orders    CustomerOrder[]
+  updatedAt DateTime        @updatedAt
+  createdAt DateTime        @default(now())
+
+  @@index([isActive, status, number])
+}
+
+model CustomerOrder {
+  id                Int                  @id @default(autoincrement())
+  publicId          String               @unique @default(cuid())
+  clientRequestId   String               @unique
+  mode              String               @default("DINE_IN")
+  status            String               @default("RECEIVED")
+  paymentStatus     String               @default("PENDING")
+  paymentMethod     String?
+  subtotalCents     Int
+  serviceFeeCents   Int                  @default(0)
+  totalCents        Int
+  notes             String               @default("")
+  diningTableId     String?
+  diningTable       DiningTable?         @relation(fields: [diningTableId], references: [id], onDelete: SetNull)
+  items             OrderItem[]
+  statusHistory     OrderStatusHistory[]
+  updatedAt         DateTime              @updatedAt
+  createdAt         DateTime              @default(now())
+
+  @@index([status, createdAt])
+  @@index([diningTableId, status])
+}
+
+model OrderItem {
+  id                 String        @id @default(cuid())
+  orderId            Int
+  order              CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId          String?
+  product            MenuItem?     @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName        String
+  quantity           Int
+  basePriceCents     Int
+  extraPriceCents    Int           @default(0)
+  unitPriceCents     Int
+  lineTotalCents     Int
+  customization     String         @default("[]")
+  createdAt          DateTime       @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderStatusHistory {
+  id        String        @id @default(cuid())
+  orderId   Int
+  order     CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  actor     String         @default("SYSTEM")
+  createdAt DateTime       @default(now())
+
+  @@index([orderId, createdAt])
 }
 
 model AdminUser {

@@ -1,15 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
+import { getTokenSecret } from "./token-secret";
 
 const COOKIE_NAME = "el_bueno_admin_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
-
-function getSecret() {
-  const value = process.env.SESSION_SECRET;
-  if (!value || value.length < 32) throw new Error("SESSION_SECRET must contain at least 32 characters.");
-  return new TextEncoder().encode(value);
-}
 
 export async function createSession(user: { id: string; email: string; role: string }) {
   const token = await new SignJWT({ email: user.email, role: user.role })
@@ -17,7 +12,7 @@ export async function createSession(user: { id: string; email: string; role: str
     .setSubject(user.id)
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
-    .sign(getSecret());
+    .sign(getTokenSecret());
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
@@ -37,7 +32,7 @@ export async function getSession() {
   const token = (await cookies()).get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, getSecret());
+    const { payload } = await jwtVerify(token, getTokenSecret());
     if (!payload.sub || payload.role !== "ADMIN") return null;
     return { id: payload.sub, email: String(payload.email), role: String(payload.role) };
   } catch {

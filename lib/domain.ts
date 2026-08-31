@@ -48,3 +48,39 @@ export type MenuCategoryView = {
   isActive: boolean;
   items: MenuItemView[];
 };
+
+export type DiningTableStatus = "AVAILABLE" | "OCCUPIED" | "CLEANING" | "INACTIVE";
+export type DiningTableView = {
+  id: string;
+  code: string;
+  number: number;
+  name: string;
+  capacity: number;
+  status: DiningTableStatus;
+  isActive: boolean;
+};
+
+export type OrderStatus = "RECEIVED" | "PREPARING" | "READY" | "SERVED" | "PAID" | "CANCELLED";
+export type OrderItemView = {
+  id: string;
+  productName: string;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+  customization: string[];
+};
+
+export type OrderView = {
+  id: number;
+  publicId: string;
+  mode: "DINE_IN";
+  status: OrderStatus;
+  paymentStatus: "PENDING" | "PAID";
+  paymentMethod: string | null;
+  subtotalCents: number;
+  totalCents: number;
+  notes: string;
+  createdAt: string;
+  table: Pick<DiningTableView, "id" | "number" | "name"> | null;
+  items: OrderItemView[];
+};

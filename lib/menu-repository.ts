@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { db } from "./db";
 import { toMenuCategoryView, toMenuItemView, toRestaurantView } from "./serializers";
+import { orderInclude, toDiningTableView, toOrderView } from "./order-serializers";
 
 export const getRestaurant = cache(async () => {
   const restaurant = await db.restaurant.findUnique({ where: { id: 1 } });
@@ -44,4 +45,18 @@ export async function getAdminMenu() {
     },
   });
   return categories.map(toMenuCategoryView);
+}
+
+export async function getDiningTables() {
+  const tables = await db.diningTable.findMany({ orderBy: { number: "asc" } });
+  return tables.map(toDiningTableView);
+}
+
+export async function getActiveOrders() {
+  const orders = await db.customerOrder.findMany({
+    where: { status: { notIn: ["PAID", "CANCELLED"] } },
+    orderBy: { createdAt: "asc" },
+    include: orderInclude,
+  });
+  return orders.map(toOrderView);
 }

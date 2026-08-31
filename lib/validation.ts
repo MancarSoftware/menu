@@ -49,3 +49,23 @@ export const restaurantSchema = z.object({
 });
 
 export const loginSchema = z.object({ email: z.email(), password: z.string().min(8).max(200) });
+
+export const diningTableSchema = z.object({
+  number: z.number().int().min(1).max(999),
+  name: z.string().trim().min(2).max(80),
+  capacity: z.number().int().min(1).max(30),
+  isActive: z.boolean(),
+});
+
+export const diningTableStatusSchema = z.enum(["AVAILABLE", "OCCUPIED", "CLEANING", "INACTIVE"]);
+export const orderStatusSchema = z.enum(["RECEIVED", "PREPARING", "READY", "SERVED", "PAID", "CANCELLED"]);
+
+export const dineInOrderSchema = z.object({
+  clientRequestId: z.uuid(),
+  notes: z.string().trim().max(500).default(""),
+  items: z.array(z.object({
+    productId: z.string().min(1),
+    quantity: z.number().int().min(1).max(20),
+    customizationKey: z.string().max(1000).default("standard"),
+  })).min(1).max(40),
+});
