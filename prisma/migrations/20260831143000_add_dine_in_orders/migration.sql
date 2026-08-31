@@ -1,55 +1,78 @@
 CREATE TABLE "DiningTable" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "number" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
-    "capacity" INTEGER NOT NULL DEFAULT 4 CHECK ("capacity" BETWEEN 1 AND 30),
-    "status" TEXT NOT NULL DEFAULT 'AVAILABLE' CHECK ("status" IN ('AVAILABLE', 'OCCUPIED', 'CLEANING', 'INACTIVE')),
+    "capacity" INTEGER NOT NULL DEFAULT 4,
+    "status" TEXT NOT NULL DEFAULT 'AVAILABLE',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "updatedAt" DATETIME NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "DiningTable_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "DiningTable_number_check" CHECK ("number" > 0),
+    CONSTRAINT "DiningTable_capacity_check" CHECK ("capacity" BETWEEN 1 AND 30),
+    CONSTRAINT "DiningTable_status_check" CHECK ("status" IN ('AVAILABLE', 'OCCUPIED', 'CLEANING', 'INACTIVE'))
 );
 
 CREATE TABLE "CustomerOrder" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "publicId" TEXT NOT NULL,
     "clientRequestId" TEXT NOT NULL,
-    "mode" TEXT NOT NULL DEFAULT 'DINE_IN' CHECK ("mode" = 'DINE_IN'),
-    "status" TEXT NOT NULL DEFAULT 'RECEIVED' CHECK ("status" IN ('RECEIVED', 'PREPARING', 'READY', 'SERVED', 'PAID', 'CANCELLED')),
-    "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING' CHECK ("paymentStatus" IN ('PENDING', 'PAID')),
+    "mode" TEXT NOT NULL DEFAULT 'DINE_IN',
+    "status" TEXT NOT NULL DEFAULT 'RECEIVED',
+    "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING',
     "paymentMethod" TEXT,
-    "subtotalCents" INTEGER NOT NULL CHECK ("subtotalCents" >= 0),
-    "serviceFeeCents" INTEGER NOT NULL DEFAULT 0 CHECK ("serviceFeeCents" >= 0),
-    "totalCents" INTEGER NOT NULL CHECK ("totalCents" >= 0),
+    "subtotalCents" INTEGER NOT NULL,
+    "serviceFeeCents" INTEGER NOT NULL DEFAULT 0,
+    "totalCents" INTEGER NOT NULL,
     "notes" TEXT NOT NULL DEFAULT '',
     "diningTableId" TEXT,
-    "updatedAt" DATETIME NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CustomerOrder_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "CustomerOrder_mode_check" CHECK ("mode" = 'DINE_IN'),
+    CONSTRAINT "CustomerOrder_status_check" CHECK ("status" IN ('RECEIVED', 'PREPARING', 'READY', 'SERVED', 'PAID', 'CANCELLED')),
+    CONSTRAINT "CustomerOrder_paymentStatus_check" CHECK ("paymentStatus" IN ('PENDING', 'PAID')),
+    CONSTRAINT "CustomerOrder_subtotalCents_check" CHECK ("subtotalCents" >= 0),
+    CONSTRAINT "CustomerOrder_serviceFeeCents_check" CHECK ("serviceFeeCents" >= 0),
+    CONSTRAINT "CustomerOrder_totalCents_check" CHECK ("totalCents" >= 0),
     CONSTRAINT "CustomerOrder_diningTableId_fkey" FOREIGN KEY ("diningTableId") REFERENCES "DiningTable" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE TABLE "OrderItem" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "orderId" INTEGER NOT NULL,
     "productId" TEXT,
     "productName" TEXT NOT NULL,
-    "quantity" INTEGER NOT NULL CHECK ("quantity" BETWEEN 1 AND 20),
-    "basePriceCents" INTEGER NOT NULL CHECK ("basePriceCents" >= 0),
-    "extraPriceCents" INTEGER NOT NULL DEFAULT 0 CHECK ("extraPriceCents" >= 0),
-    "unitPriceCents" INTEGER NOT NULL CHECK ("unitPriceCents" >= 0),
-    "lineTotalCents" INTEGER NOT NULL CHECK ("lineTotalCents" >= 0),
+    "quantity" INTEGER NOT NULL,
+    "basePriceCents" INTEGER NOT NULL,
+    "extraPriceCents" INTEGER NOT NULL DEFAULT 0,
+    "unitPriceCents" INTEGER NOT NULL,
+    "lineTotalCents" INTEGER NOT NULL,
     "customization" TEXT NOT NULL DEFAULT '[]',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "OrderItem_quantity_check" CHECK ("quantity" BETWEEN 1 AND 20),
+    CONSTRAINT "OrderItem_basePriceCents_check" CHECK ("basePriceCents" >= 0),
+    CONSTRAINT "OrderItem_extraPriceCents_check" CHECK ("extraPriceCents" >= 0),
+    CONSTRAINT "OrderItem_unitPriceCents_check" CHECK ("unitPriceCents" >= 0),
+    CONSTRAINT "OrderItem_lineTotalCents_check" CHECK ("lineTotalCents" >= 0),
     CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "CustomerOrder" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "OrderItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "MenuItem" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 CREATE TABLE "OrderStatusHistory" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "orderId" INTEGER NOT NULL,
     "status" TEXT NOT NULL,
     "actor" TEXT NOT NULL DEFAULT 'SYSTEM',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "OrderStatusHistory_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "OrderStatusHistory_status_check" CHECK ("status" IN ('RECEIVED', 'PREPARING', 'READY', 'SERVED', 'PAID', 'CANCELLED')),
     CONSTRAINT "OrderStatusHistory_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "CustomerOrder" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
