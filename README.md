@@ -21,7 +21,7 @@ npm run db:seed
 npm run dev
 ```
 
-Before migrating or seeding, configure both the pooled `DATABASE_URL` and direct `DIRECT_URL`, then replace the example session secret and administrator password in `.env`. The public site runs at `http://127.0.0.1:3000`; the sign-in screen is at `/admin/login`.
+Before migrating or seeding, configure `DATABASE_URL`, then replace the example session secret and administrator password in `.env`. The public site runs at `http://127.0.0.1:3000`; the sign-in screen is at `/admin/login`.
 
 Use `npm run db:migrate:deploy` in hosted environments. Keep all database URLs and credentials in local or hosting-platform environment variables; never commit `.env`.
 
