@@ -123,7 +123,7 @@
 .find-us { padding: clamp(4rem, 8vw, 7rem) 0 2rem; }
 .find-us > header { padding-bottom: 1.5rem; border-bottom: 3px solid var(--fast-ink); }
 .find-us__map { position: relative; min-height: clamp(260px, 40vw, 460px); overflow: hidden; border: 3px solid var(--fast-ink); border-radius: 0; background: var(--fast-soft); filter: saturate(.72) contrast(1.08); }
-.find-us__map img { object-fit: cover; }
+.location-map__frame { width: 100%; height: 100%; min-height: inherit; display: block; border: 0; }
 .find-us__address { min-height: 96px; padding: 1rem 1.2rem; display: grid; grid-template-columns: 36px 1fr auto; gap: 1rem; align-items: center; background: var(--fast-orange); color: #fff; }
 .find-us__address > svg { width: 1.4rem; }
 .find-us__address p { margin: 0; display: grid; font-weight: 600; }

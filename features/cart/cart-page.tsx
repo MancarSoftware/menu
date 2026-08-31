@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "./cart-context";
 
-const deliveryFeeCents = 5000;
+const deliveryFeeCents = 250;
 
 export function CartPage({ whatsapp }: { whatsapp: string }) {
   const { entries, totalCents, updateQuantity, clearCart } = useCart();
@@ -41,8 +41,8 @@ export function CartPage({ whatsapp }: { whatsapp: string }) {
       <div className="cart-total"><span>Total</span><strong>{formatPrice(finalTotal)}</strong></div>
 
       <div className="checkout-fields">
-        <label>Dirección de envío<input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Tu dirección..." autoComplete="street-address" /></label>
-        <label>Instrucciones o comentarios<textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Sin cebolla, por favor" rows={2} /></label>
+        <label>Dirección de envío<input required minLength={8} maxLength={240} value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Calle, número y referencia" autoComplete="street-address" /></label>
+        <label>Instrucciones o comentarios<textarea maxLength={500} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Sin cebolla, por favor" rows={2} /></label>
       </div>
 
       {canOrder ? <a className="whatsapp-button checkout-button" href={orderUrl} target="_blank" rel="noreferrer">Ordenar por WhatsApp</a> : <button className="whatsapp-button checkout-button" type="button" disabled>Escribe tu dirección para ordenar</button>}

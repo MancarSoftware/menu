@@ -22,8 +22,8 @@ export function LoginForm() {
 
   return (
     <form className="login-form" onSubmit={submit}>
-      <div className="form-field"><label htmlFor="email">Correo</label><input id="email" name="email" type="email" autoComplete="username" required /></div>
-      <div className="form-field"><label htmlFor="password">Contraseña</label><input id="password" name="password" type="password" autoComplete="current-password" minLength={8} required /></div>
+      <div className="form-field"><label htmlFor="email">Correo</label><input id="email" name="email" type="email" inputMode="email" autoComplete="username" maxLength={254} required /></div>
+      <div className="form-field"><label htmlFor="password">Contraseña</label><input id="password" name="password" type="password" autoComplete="current-password" minLength={8} maxLength={200} required /></div>
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className="button button--solid" type="submit" disabled={pending}>{pending ? "Verificando…" : "Entrar al panel"}</button>
     </form>

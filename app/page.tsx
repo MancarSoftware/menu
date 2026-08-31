@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Clock3, MapPin } from "lucide-react";
+import { LocationMap } from "@/components/location-map";
 import { formatPrice } from "@/lib/format";
 import { getFeaturedItems, getRestaurant } from "@/lib/menu-repository";
 
@@ -13,11 +14,11 @@ export default async function HomePage() {
     "@type": "FastFoodRestaurant",
     name: restaurant.name,
     description: restaurant.description,
-    address: { "@type": "PostalAddress", streetAddress: restaurant.address, addressLocality: "Santiago de los Caballeros", addressCountry: "DO" },
+    address: { "@type": "PostalAddress", streetAddress: restaurant.address, addressLocality: restaurant.city, addressCountry: restaurant.countryCode },
     telephone: restaurant.phone,
     email: restaurant.email,
     servesCuisine: ["Hamburguesas", "Pizza", "Comida rápida"],
-    priceRange: "RD$",
+    priceRange: "$",
   };
 
   return (
@@ -30,18 +31,18 @@ export default async function HomePage() {
       <section className="fast-hero" aria-labelledby="welcome-title">
         <Image src="/images/fast-food/hero.webp" alt="Hamburguesas con vegetales frescos y aros de cebolla" fill priority unoptimized sizes="(max-width: 760px) 100vw, 1120px" />
         <div className="fast-hero__overlay">
-          <p>Santiago · abierto todos los días</p>
+          <p>{restaurant.city} · abierto todos los días</p>
           <h1 id="welcome-title">Hambre en serio.<br /><em>Sabor sin vueltas.</em></h1>
           <Link href="/menu">Ver el menú <ArrowRight aria-hidden="true" /></Link>
         </div>
-        <div className="hero-price"><small>BURGERS</small><strong>DESDE</strong><b>RD$350</b></div>
+        <div className="hero-price"><small>BURGERS</small><strong>DESDE</strong><b>$6.99</b></div>
         <p className="hero-side-note">CALIENTE · RÁPIDO · BUENO</p>
       </section>
 
       <section className="welcome-copy">
         <span className="section-number">01</span>
         <div><p className="section-kicker">Hecho al momento</p><h2>No es comida de paso.<br />Es comida para volver.</h2></div>
-        <div className="welcome-copy__body"><p>{restaurant.description} Hamburguesas jugosas, pizzas doradas y combos listos para compartir.</p><div className="quick-facts"><span><Clock3 aria-hidden="true" /> Servicio rápido</span><span><MapPin aria-hidden="true" /> Santiago</span></div></div>
+        <div className="welcome-copy__body"><p>{restaurant.description} Hamburguesas jugosas, pizzas doradas y combos listos para compartir.</p><div className="quick-facts"><span><Clock3 aria-hidden="true" /> Servicio rápido</span><span><MapPin aria-hidden="true" /> {restaurant.city}, Ecuador</span></div></div>
       </section>
 
       {featured.length > 0 && <section className="popular-section" aria-labelledby="popular-title">
@@ -56,8 +57,8 @@ export default async function HomePage() {
       </section>}
 
       <section className="find-us" aria-labelledby="find-us-title">
-        <header><div><p className="section-kicker">Ven con hambre</p><h2 id="find-us-title">Aquí empieza<br />lo bueno.</h2></div><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`} target="_blank" rel="noreferrer">Cómo llegar <ArrowRight aria-hidden="true" /></a></header>
-        <div className="find-us__map"><Image src="/images/fast-food/map.webp" alt="Mapa de Santiago de los Caballeros" fill sizes="(max-width: 760px) 100vw, 1120px" /></div>
+        <header><div><p className="section-kicker">Ven con hambre</p><h2 id="find-us-title">Aquí empieza<br />lo bueno.</h2></div><a href={`https://www.openstreetmap.org/?mlat=${restaurant.latitude}&mlon=${restaurant.longitude}#map=17/${restaurant.latitude}/${restaurant.longitude}`} target="_blank" rel="noreferrer">Cómo llegar <ArrowRight aria-hidden="true" /></a></header>
+        <div className="find-us__map"><LocationMap latitude={restaurant.latitude} longitude={restaurant.longitude} label={`${restaurant.name}, ${restaurant.city}`} /></div>
         <div className="find-us__address"><MapPin aria-hidden="true" /><p><span>Nuestro local</span>{restaurant.address}</p><strong>TE ESPERAMOS</strong></div>
       </section>
     </main>

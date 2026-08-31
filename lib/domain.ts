@@ -7,6 +7,10 @@ export type RestaurantView = {
   tagline: string;
   description: string;
   address: string;
+  city: string;
+  countryCode: string;
+  latitude: number;
+  longitude: number;
   phone: string;
   whatsapp: string;
   email: string;

@@ -9,10 +9,10 @@ const poppins = Poppins({ subsets: ["latin"], variable: "--font-sans", weight: [
 const archivoBlack = Archivo_Black({ subsets: ["latin"], variable: "--font-poster", weight: "400", display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://elbueno.do"),
+  metadataBase: new URL("https://elbueno.ec"),
   title: { default: "El Bueno — Hamburguesas y pizzas", template: "%s — El Bueno" },
-  description: "Hamburguesas, pizzas y combos hechos al momento en Santiago.",
-  openGraph: { title: "El Bueno", description: "Comida rápida, fresca y hecha al momento.", type: "website", locale: "es_DO" },
+  description: "Hamburguesas, pizzas y combos hechos al momento en Quito, Ecuador.",
+  openGraph: { title: "El Bueno", description: "Comida rápida, fresca y hecha al momento en Quito.", type: "website", locale: "es_EC" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

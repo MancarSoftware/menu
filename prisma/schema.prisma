@@ -13,6 +13,10 @@ model Restaurant {
   tagline      String
   description  String
   address      String
+  city         String   @default("Quito")
+  countryCode  String   @default("EC")
+  latitude     Float    @default(-0.220164)
+  longitude    Float    @default(-78.512327)
   phone        String
   whatsapp     String
   email        String

@@ -49,7 +49,7 @@ export function AdminDashboard({ categories, restaurant, userEmail }: { categori
       </aside>
 
       <section className="admin-workspace">
-        <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-DO")}</p><h1>{tab === "overview" ? "Resumen" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
+        <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
         {notice && <div className="admin-notice" data-kind={notice.kind} role="status">{notice.kind === "success" ? <Check aria-hidden="true" /> : <CircleOff aria-hidden="true" />}{notice.message}<button onClick={() => setNotice(null)} aria-label="Cerrar aviso"><X aria-hidden="true" /></button></div>}
 
         {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} onNavigate={setTab} />}
@@ -129,7 +129,7 @@ function ItemManager({ categories, run }: { categories: MenuCategoryView[]; run:
         </div>
         <div className="form-grid">
           <div className="form-field"><label htmlFor="item-name">Nombre</label><input id="item-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value, slug: editingId ? form.slug : slugify(e.target.value) })} required /></div>
-          <div className="form-field"><label htmlFor="item-price">Precio RD$</label><input id="item-price" type="number" step="1" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required /></div>
+          <div className="form-field"><label htmlFor="item-price">Precio USD</label><input id="item-price" type="number" inputMode="decimal" step="0.01" min="0.01" max="100000" value={form.price} onKeyDown={(event) => { if (["e", "E", "+", "-"].includes(event.key)) event.preventDefault(); }} onChange={(e) => { if (/^\d*(?:\.\d{0,2})?$/.test(e.target.value)) setForm({ ...form, price: e.target.value }); }} required /></div>
         </div>
         <div className="form-grid">
           <div className="form-field"><label htmlFor="item-slug">Identificador URL</label><input id="item-slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })} required /></div>
@@ -158,6 +158,70 @@ function ItemManager({ categories, run }: { categories: MenuCategoryView[]; run:
 function RestaurantManager({ restaurant, run }: { restaurant: RestaurantView; run: (action: () => Promise<void>, success: string) => Promise<void> }) {
   const [form, setForm] = useState({ ...restaurant, openingText: restaurant.openingHours.map((item) => `${item.days} | ${item.hours}`).join("\n"), instagram: restaurant.socialLinks.instagram ?? "", facebook: restaurant.socialLinks.facebook ?? "", tiktok: restaurant.socialLinks.tiktok ?? "" });
   const [pending, setPending] = useState(false);
-  async function submit(event: React.FormEvent) { event.preventDefault(); setPending(true); const openingHours = form.openingText.split("\n").map((line) => { const [days, hours] = line.split("|").map((value) => value.trim()); return { days, hours }; }).filter((item) => item.days && item.hours); try { await run(() => requestJson("/api/restaurant", "PATCH", { name: form.name, tagline: form.tagline, description: form.description, address: form.address, phone: form.phone, whatsapp: form.whatsapp, email: form.email, openingHours, socialLinks: { instagram: form.instagram, facebook: form.facebook, tiktok: form.tiktok } }).then(() => undefined), "Información del restaurante actualizada."); } finally { setPending(false); } }
-  return <form className="restaurant-editor" onSubmit={submit}><section><p className="eyebrow">Identidad pública</p><h2>Información del local</h2><p>Estos datos alimentan la portada, el contacto y los pedidos por WhatsApp.</p></section><div className="restaurant-editor__form"><div className="form-grid"><div className="form-field"><label htmlFor="rest-name">Nombre</label><input id="rest-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div><div className="form-field"><label htmlFor="rest-email">Correo</label><input id="rest-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div></div><div className="form-field"><label htmlFor="rest-tagline">Frase principal</label><input id="rest-tagline" value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} /></div><div className="form-field"><label htmlFor="rest-description">Descripción</label><textarea id="rest-description" rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div><div className="form-field"><label htmlFor="rest-address">Dirección</label><input id="rest-address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div><div className="form-grid"><div className="form-field"><label htmlFor="rest-phone">Teléfono</label><input id="rest-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div><div className="form-field"><label htmlFor="rest-whatsapp">WhatsApp <small>solo números</small></label><input id="rest-whatsapp" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, "") })} /></div></div><div className="form-field"><label htmlFor="rest-hours">Horarios <small>una línea por rango: días | horas</small></label><textarea id="rest-hours" rows={4} value={form.openingText} onChange={(e) => setForm({ ...form, openingText: e.target.value })} /></div><div className="form-grid"><div className="form-field"><label htmlFor="rest-instagram">Instagram</label><input id="rest-instagram" type="url" value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} /></div><div className="form-field"><label htmlFor="rest-facebook">Facebook</label><input id="rest-facebook" type="url" value={form.facebook} onChange={(e) => setForm({ ...form, facebook: e.target.value })} /></div></div><div className="admin-editor__actions"><button className="button button--solid button--large" disabled={pending}>{pending ? "Guardando…" : "Guardar y publicar"}</button></div></div></form>;
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!event.currentTarget.reportValidity()) return;
+    setPending(true);
+    const openingHours = form.openingText.split("\n").map((line) => {
+      const [days, hours] = line.split("|").map((value) => value.trim());
+      return { days, hours };
+    }).filter((item) => item.days && item.hours);
+
+    try {
+      await run(() => requestJson("/api/restaurant", "PATCH", {
+        name: form.name,
+        tagline: form.tagline,
+        description: form.description,
+        address: form.address,
+        city: form.city,
+        countryCode: form.countryCode,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        phone: form.phone,
+        whatsapp: form.whatsapp,
+        email: form.email.trim().toLowerCase(),
+        openingHours,
+        socialLinks: { instagram: form.instagram, facebook: form.facebook, tiktok: form.tiktok },
+      }).then(() => undefined), "Información del local actualizada.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form className="restaurant-editor" onSubmit={submit}>
+      <section>
+        <p className="eyebrow">Identidad pública</p>
+        <h2>Información del local</h2>
+        <p>Estos datos alimentan la portada, el mapa, el contacto y los pedidos por WhatsApp.</p>
+      </section>
+      <div className="restaurant-editor__form">
+        <div className="form-grid">
+          <div className="form-field"><label htmlFor="rest-name">Nombre</label><input id="rest-name" required minLength={2} maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+          <div className="form-field"><label htmlFor="rest-email">Correo</label><input id="rest-email" type="email" inputMode="email" required maxLength={254} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="hola@elbueno.ec" /></div>
+        </div>
+        <div className="form-field"><label htmlFor="rest-tagline">Frase principal</label><input id="rest-tagline" required minLength={5} maxLength={160} value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} /></div>
+        <div className="form-field"><label htmlFor="rest-description">Descripción</label><textarea id="rest-description" required minLength={20} maxLength={1000} rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+        <div className="form-field"><label htmlFor="rest-address">Dirección</label><input id="rest-address" required minLength={5} maxLength={240} autoComplete="street-address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+        <div className="form-grid">
+          <div className="form-field"><label htmlFor="rest-city">Ciudad</label><input id="rest-city" required minLength={2} maxLength={100} autoComplete="address-level2" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+          <div className="form-field"><label htmlFor="rest-country">País</label><select id="rest-country" value={form.countryCode} disabled><option value="EC">Ecuador</option></select></div>
+        </div>
+        <div className="form-grid">
+          <div className="form-field"><label htmlFor="rest-latitude">Latitud</label><input id="rest-latitude" type="number" inputMode="decimal" required step="0.000001" min="-90" max="90" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: Number(e.target.value) })} /></div>
+          <div className="form-field"><label htmlFor="rest-longitude">Longitud</label><input id="rest-longitude" type="number" inputMode="decimal" required step="0.000001" min="-180" max="180" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: Number(e.target.value) })} /></div>
+        </div>
+        <div className="form-grid">
+          <div className="form-field"><label htmlFor="rest-phone">Teléfono</label><input id="rest-phone" type="tel" inputMode="tel" required minLength={7} maxLength={20} pattern="\+?[0-9\s-]{7,20}" title="Usa únicamente números, espacios, guiones y un + inicial opcional." value={form.phone} onChange={(e) => { if (/^\+?[0-9\s-]*$/.test(e.target.value)) setForm({ ...form, phone: e.target.value }); }} placeholder="+593 2 255 5555" /></div>
+          <div className="form-field"><label htmlFor="rest-whatsapp">WhatsApp <small>593 + 9 dígitos</small></label><input id="rest-whatsapp" type="tel" inputMode="numeric" required minLength={12} maxLength={12} pattern="593[0-9]{9}" title="Debe comenzar con 593 y contener 12 dígitos." value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value.replace(/\D/g, "").slice(0, 12) })} placeholder="593995555555" /></div>
+        </div>
+        <div className="form-field"><label htmlFor="rest-hours">Horarios <small>una línea por rango: días | horas</small></label><textarea id="rest-hours" required minLength={5} maxLength={1200} rows={4} value={form.openingText} onChange={(e) => setForm({ ...form, openingText: e.target.value })} /></div>
+        <div className="form-grid">
+          <div className="form-field"><label htmlFor="rest-instagram">Instagram</label><input id="rest-instagram" type="url" maxLength={500} value={form.instagram} onChange={(e) => setForm({ ...form, instagram: e.target.value })} placeholder="https://instagram.com/elbueno" /></div>
+          <div className="form-field"><label htmlFor="rest-facebook">Facebook</label><input id="rest-facebook" type="url" maxLength={500} value={form.facebook} onChange={(e) => setForm({ ...form, facebook: e.target.value })} placeholder="https://facebook.com/elbueno" /></div>
+        </div>
+        <div className="admin-editor__actions"><button type="submit" className="button button--solid button--large" disabled={pending}>{pending ? "Guardando…" : "Guardar y publicar"}</button></div>
+      </div>
+    </form>
+  );
 }

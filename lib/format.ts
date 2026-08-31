@@ -1,9 +1,11 @@
 export function formatPrice(priceCents: number): string {
-  const value = priceCents / 100;
-  return `RD$${new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+  return new Intl.NumberFormat("es-EC", {
+    style: "currency",
+    currency: "USD",
+    currencyDisplay: "narrowSymbol",
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value)}`;
+  }).format(priceCents / 100);
 }
 
 export function slugify(value: string): string {
