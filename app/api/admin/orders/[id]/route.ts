@@ -34,6 +34,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           status: input.status,
           paymentStatus: input.status === "PAID" ? "PAID" : current.paymentStatus,
           paymentMethod: input.status === "PAID" ? input.paymentMethod : current.paymentMethod,
+          paidAt: input.status === "PAID" ? new Date() : current.paidAt,
           statusHistory: { create: { status: input.status, actor: session.email } },
         },
         include: orderInclude,

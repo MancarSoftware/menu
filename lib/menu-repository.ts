@@ -2,6 +2,7 @@ import { cache } from "react";
 import { db } from "./db";
 import { toMenuCategoryView, toMenuItemView, toRestaurantView } from "./serializers";
 import { orderInclude, toDiningTableView, toOrderView } from "./order-serializers";
+import { getBusinessDate, getBusinessDateRange } from "./business-date";
 
 export const getRestaurant = cache(async () => {
   const restaurant = await db.restaurant.findUnique({ where: { id: 1 } });
@@ -61,13 +62,15 @@ export async function getActiveOrders() {
   return orders.map(toOrderView);
 }
 
-export async function getAdminMetrics() {
+export async function getAdminMetrics(date = getBusinessDate()) {
+  const { start, end } = getBusinessDateRange(date);
   const paidOrders = await db.customerOrder.aggregate({
-    where: { paymentStatus: "PAID" },
+    where: { paymentStatus: "PAID", paidAt: { gte: start, lt: end } },
     _sum: { totalCents: true },
     _count: { _all: true },
   });
   return {
+    date,
     revenueCents: paidOrders._sum.totalCents ?? 0,
     paidOrderCount: paidOrders._count._all,
   };

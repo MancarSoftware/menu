@@ -16,6 +16,8 @@ export function toDiningTableView(table: { id: string; code: string; number: num
 export function toOrderView(order: OrderWithDetails): OrderView {
   return {
     id: order.id,
+    orderNumber: order.dailyNumber,
+    businessDate: order.businessDate,
     publicId: order.publicId,
     mode: "DINE_IN",
     status: order.status as OrderStatus,

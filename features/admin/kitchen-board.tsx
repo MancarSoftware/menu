@@ -64,10 +64,10 @@ export function KitchenBoard({ initialOrders, onPaymentRecorded }: { initialOrde
           const action = nextActions[order.status];
           const ActionIcon = action?.icon ?? Check;
           return <article className="kitchen-ticket" key={order.id}>
-            <header><strong>#{order.id}</strong><span>Mesa {order.table?.number}</span><time>{new Date(order.createdAt).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}</time></header>
+            <header><strong>#{order.orderNumber}</strong><span>Mesa {order.table?.number}</span><time>{new Date(order.createdAt).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}</time></header>
             <div className="kitchen-ticket__items">{order.items.map((item) => <div key={item.id}><span><b>{item.quantity}×</b> {item.productName}{item.customization.length > 0 && <small>{item.customization.join(" · ")}</small>}</span><strong>{formatPrice(item.lineTotalCents)}</strong></div>)}</div>
             {order.notes && <p>Nota: {order.notes}</p>}
-            <footer>{action && <button className="button button--solid" disabled={pendingId === order.id} onClick={() => advance(order, action.status)}><ActionIcon aria-hidden="true" />{action.label}</button>}{["RECEIVED", "PREPARING"].includes(order.status) && <button className="icon-button icon-button--danger" disabled={pendingId === order.id} onClick={() => advance(order, "CANCELLED")} aria-label={`Cancelar pedido ${order.id}`}><Ban aria-hidden="true" /></button>}</footer>
+            <footer>{action && <button className="button button--solid" disabled={pendingId === order.id} onClick={() => advance(order, action.status)}><ActionIcon aria-hidden="true" />{action.label}</button>}{["RECEIVED", "PREPARING"].includes(order.status) && <button className="icon-button icon-button--danger" disabled={pendingId === order.id} onClick={() => advance(order, "CANCELLED")} aria-label={`Cancelar pedido ${order.orderNumber}`}><Ban aria-hidden="true" /></button>}</footer>
           </article>;
         }) : <p className="kitchen-empty">Sin pedidos aquí.</p>}</div>
       </section>;

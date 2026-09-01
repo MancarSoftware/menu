@@ -72,6 +72,8 @@ export type OrderItemView = {
 
 export type OrderView = {
   id: number;
+  orderNumber: number;
+  businessDate: string;
   publicId: string;
   mode: "DINE_IN";
   status: OrderStatus;
@@ -86,6 +88,7 @@ export type OrderView = {
 };
 
 export type AdminMetricsView = {
+  date: string;
   revenueCents: number;
   paidOrderCount: number;
 };

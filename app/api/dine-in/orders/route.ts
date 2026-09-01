@@ -6,6 +6,7 @@ import { parseArray } from "@/lib/serializers";
 import { getDiningTableSession } from "@/lib/table-session";
 import { dineInOrderSchema } from "@/lib/validation";
 import { resolveProductCustomization } from "@/features/menu/product-options";
+import { getBusinessDate } from "@/lib/business-date";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,11 +46,19 @@ export async function POST(request: NextRequest) {
     if (orderItems.some((item) => item === null)) return NextResponse.json({ error: "Una personalización ya no es válida." }, { status: 400 });
     const validItems = orderItems.filter((item): item is NonNullable<typeof item> => item !== null);
     const subtotalCents = validItems.reduce((total, item) => total + item.lineTotalCents, 0);
+    const businessDate = getBusinessDate();
 
     const order = await db.$transaction(async (transaction) => {
+      const counter = await transaction.dailyOrderCounter.upsert({
+        where: { businessDate },
+        create: { businessDate, lastNumber: 1 },
+        update: { lastNumber: { increment: 1 } },
+      });
       const created = await transaction.customerOrder.create({
         data: {
           clientRequestId: input.clientRequestId,
+          dailyNumber: counter.lastNumber,
+          businessDate,
           diningTableId: table.id,
           mode: "DINE_IN",
           status: "RECEIVED",

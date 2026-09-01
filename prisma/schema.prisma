@@ -85,10 +85,13 @@ model CustomerOrder {
   id                Int                  @id @default(autoincrement())
   publicId          String               @unique @default(cuid())
   clientRequestId   String               @unique
+  dailyNumber       Int
+  businessDate      String               @db.VarChar(10)
   mode              String               @default("DINE_IN")
   status            String               @default("RECEIVED")
   paymentStatus     String               @default("PENDING")
   paymentMethod     String?
+  paidAt            DateTime?
   subtotalCents     Int
   serviceFeeCents   Int                  @default(0)
   totalCents        Int
@@ -102,6 +105,15 @@ model CustomerOrder {
 
   @@index([status, createdAt])
   @@index([diningTableId, status])
+  @@index([paymentStatus, paidAt])
+  @@unique([businessDate, dailyNumber])
+}
+
+model DailyOrderCounter {
+  businessDate String   @id @db.VarChar(10)
+  lastNumber   Int      @default(0)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
 }
 
 model OrderItem {

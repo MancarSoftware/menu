@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Check, ChefHat, ChevronRight, CircleOff, Edit3, ExternalLink, ImagePlus, LayoutList, LogOut, MapPinned, Plus, QrCode, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
 import type { AdminMetricsView, DiningTableView, MenuCategoryView, MenuItemView, OrderView, RestaurantView } from "@/lib/domain";
+import { getBusinessDate } from "@/lib/business-date";
 import { formatPrice, slugify } from "@/lib/format";
 import { requestJson, SessionExpiredError } from "./admin-api";
 import { KitchenBoard } from "./kitchen-board";
@@ -18,17 +19,18 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   const [tab, setTab] = useState<Tab>("overview");
   const [notice, setNotice] = useState<Notice>(null);
   const [metrics, setMetrics] = useState(initialMetrics);
+  const [revenueDate, setRevenueDate] = useState(initialMetrics.date);
   const items = categories.flatMap((category) => category.items);
   const available = items.filter((item) => item.isAvailable).length;
 
-  const refreshMetrics = useCallback(async () => {
+  const refreshMetrics = useCallback(async (date = revenueDate) => {
     try {
-      const result = await requestJson<{ metrics: AdminMetricsView }>("/api/admin/metrics");
+      const result = await requestJson<{ metrics: AdminMetricsView }>(`/api/admin/metrics?date=${encodeURIComponent(date)}`);
       setMetrics(result.metrics);
     } catch (error) {
       if (error instanceof SessionExpiredError) router.push("/admin/login");
     }
-  }, [router]);
+  }, [revenueDate, router]);
 
   useEffect(() => {
     const interval = window.setInterval(refreshMetrics, 10000);
@@ -68,7 +70,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
         <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "orders" ? "Cocina" : tab === "tables" ? "Mesas" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
         {notice && <div className="admin-notice" data-kind={notice.kind} role="status">{notice.kind === "success" ? <Check aria-hidden="true" /> : <CircleOff aria-hidden="true" />}{notice.message}<button onClick={() => setNotice(null)} aria-label="Cerrar aviso"><X aria-hidden="true" /></button></div>}
 
-        {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} metrics={metrics} onNavigate={setTab} />}
+        {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} metrics={metrics} revenueDate={revenueDate} onRevenueDateChange={(date) => { setRevenueDate(date); void refreshMetrics(date); }} onNavigate={setTab} />}
         {tab === "orders" && <KitchenBoard initialOrders={orders} onPaymentRecorded={() => { void refreshMetrics(); }} />}
         {tab === "tables" && <TableManager initialTables={tables} />}
         {tab === "categories" && <CategoryManager categories={categories} run={run} />}
@@ -79,10 +81,10 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   );
 }
 
-function Overview({ categories, itemCount, availableCount, metrics, onNavigate }: { categories: MenuCategoryView[]; itemCount: number; availableCount: number; metrics: AdminMetricsView; onNavigate: (tab: Tab) => void }) {
+function Overview({ categories, itemCount, availableCount, metrics, revenueDate, onRevenueDateChange, onNavigate }: { categories: MenuCategoryView[]; itemCount: number; availableCount: number; metrics: AdminMetricsView; revenueDate: string; onRevenueDateChange: (date: string) => void; onNavigate: (tab: Tab) => void }) {
   return (
     <div className="admin-overview">
-      <section className="admin-kpis"><div><span>Categorías activas</span><strong>{categories.filter((item) => item.isActive).length}<small> / {categories.length}</small></strong></div><div><span>Productos disponibles</span><strong>{availableCount}<small> / {itemCount}</small></strong></div><div><span>Destacados</span><strong>{categories.flatMap((c) => c.items).filter((i) => i.isFeatured).length}</strong></div><div><span>Ingresos cobrados</span><strong className="admin-kpi-money">{formatPrice(metrics.revenueCents)}<small>{metrics.paidOrderCount === 1 ? "1 cobro" : `${metrics.paidOrderCount} cobros`}</small></strong></div></section>
+      <section className="admin-kpis"><div><span>Categorías activas</span><strong>{categories.filter((item) => item.isActive).length}<small> / {categories.length}</small></strong></div><div><span>Productos disponibles</span><strong>{availableCount}<small> / {itemCount}</small></strong></div><div><span>Destacados</span><strong>{categories.flatMap((c) => c.items).filter((i) => i.isFeatured).length}</strong></div><div className="admin-kpi-revenue"><label htmlFor="revenue-date"><span>Ingresos del día</span><input id="revenue-date" type="date" value={revenueDate} max={getBusinessDate()} onChange={(event) => { if (event.target.value) onRevenueDateChange(event.target.value); }} /></label><strong className="admin-kpi-money">{formatPrice(metrics.revenueCents)}<small>{metrics.paidOrderCount === 1 ? "1 cobro" : `${metrics.paidOrderCount} cobros`}</small></strong></div></section>
       <section className="admin-overview__lead"><p className="eyebrow">Estado del menú</p><h2>{availableCount === itemCount ? "Todo está disponible." : `${itemCount - availableCount} productos agotados.`}</h2><p>Los cambios publicados se reflejan en el menú público al actualizar la página.</p><button className="button button--solid" onClick={() => onNavigate("items")}>Gestionar productos</button></section>
       <section className="admin-category-status"><header><h2>Lectura por categoría</h2><button onClick={() => onNavigate("categories")}>Ordenar categorías →</button></header>{categories.map((category) => <div key={category.id}><span className="status-dot" data-active={category.isActive} /><strong>{category.name}</strong><span>{category.items.filter((item) => item.isAvailable).length} de {category.items.length} disponibles</span></div>)}</section>
     </div>

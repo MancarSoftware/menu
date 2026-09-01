@@ -80,7 +80,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
   return (
     <main id="contenido" className="fast-page order-status-page">
       <header className="order-status__hero">
-        <p className="eyebrow">Pedido #{order.id} · Mesa {order.table?.number}</p>
+        <p className="eyebrow">Pedido #{order.orderNumber} · Mesa {order.table?.number}</p>
         <h1>{isCancelled ? "Pedido cancelado" : order.status === "PAID" ? "¡Todo listo!" : "Tu pedido está en marcha"}</h1>
         <p>{isCancelled ? "Consulta al personal si necesitas hacer un nuevo pedido." : order.status === "PAID" ? "Pago registrado. Estamos cerrando la sesión de tu mesa." : "La cocina recibió tu orden. Esta pantalla se actualiza automáticamente."}</p>
       </header>
@@ -94,7 +94,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
       </ol>}
 
       <section className="order-receipt">
-        <div className="order-receipt__heading"><ReceiptText aria-hidden="true" /><div><strong>Orden #{order.id}</strong><small>{new Date(order.createdAt).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}</small></div></div>
+        <div className="order-receipt__heading"><ReceiptText aria-hidden="true" /><div><strong>Orden #{order.orderNumber}</strong><small>{new Date(order.createdAt).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}</small></div></div>
         <div className="order-receipt__items">{order.items.map((item) => <article key={item.id}><span><strong>{item.quantity} × {item.productName}</strong>{item.customization.length > 0 && <small>{item.customization.join(" · ")}</small>}</span><b>{formatPrice(item.lineTotalCents)}</b></article>)}</div>
         {order.notes && <p className="order-receipt__notes"><CircleDot aria-hidden="true" /> {order.notes}</p>}
         <div className="order-receipt__total"><span>Total</span><strong>{formatPrice(order.totalCents)}</strong></div>
