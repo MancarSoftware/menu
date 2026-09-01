@@ -1,7 +1,7 @@
 "use client";
 
 import { Ban, ChefHat, Check, Clock3, ReceiptText, UtensilsCrossed } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OrderStatus, OrderView } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
 import { requestJson } from "./admin-api";
@@ -24,13 +24,14 @@ export function KitchenBoard({ initialOrders }: { initialOrders: OrderView[] }) 
   const [orders, setOrders] = useState(initialOrders);
   const [message, setMessage] = useState("");
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const closedOrderIds = useRef(new Set<number>());
 
-  useEffect(() => setOrders(initialOrders), [initialOrders]);
+  useEffect(() => setOrders(initialOrders.filter((order) => !closedOrderIds.current.has(order.id))), [initialOrders]);
   useEffect(() => {
     const interval = window.setInterval(async () => {
       try {
         const result = await requestJson<{ orders: OrderView[] }>("/api/admin/orders");
-        setOrders(result.orders); setMessage("");
+        setOrders(result.orders.filter((order) => !closedOrderIds.current.has(order.id))); setMessage("");
       } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos actualizar los pedidos."); }
     }, 10000);
     return () => window.clearInterval(interval);
@@ -40,7 +41,8 @@ export function KitchenBoard({ initialOrders }: { initialOrders: OrderView[] }) 
     setPendingId(order.id); setMessage("");
     try {
       const result = await requestJson<{ order: OrderView }>(`/api/admin/orders/${order.id}`, "PATCH", { status, ...(status === "PAID" ? { paymentMethod: "CASH" } : {}) });
-      setOrders((current) => ["PAID", "CANCELLED"].includes(result.order.status) ? current.filter((candidate) => candidate.id !== order.id) : current.map((candidate) => candidate.id === order.id ? result.order : candidate));
+      if (["PAID", "CANCELLED"].includes(result.order.status)) closedOrderIds.current.add(order.id);
+      setOrders((current) => closedOrderIds.current.has(order.id) ? current.filter((candidate) => candidate.id !== order.id) : current.map((candidate) => candidate.id === order.id ? result.order : candidate));
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos actualizar el pedido."); }
     finally { setPendingId(null); }
   }
