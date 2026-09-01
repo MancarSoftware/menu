@@ -83,6 +83,7 @@ export function DishDialog({ item, onClose, whatsapp, dineInTable }: { item: Men
 
   const whatsappDetails = selectionLabels.length ? `\n${selectionLabels.join("\n")}` : "";
   const whatsappText = `Hola, quisiera ordenar ${quantity} × ${item.name}.${whatsappDetails}\nTotal: ${formatPrice(unitPriceCents * quantity)}`;
+  const totalPrice = formatPrice(unitPriceCents * quantity);
 
   return (
     <dialog ref={ref} className="product-dialog" onClose={onClose} onClick={(event) => { if (event.target === ref.current) ref.current.close(); }} aria-labelledby="product-dialog-title">
@@ -135,9 +136,13 @@ export function DishDialog({ item, onClose, whatsapp, dineInTable }: { item: Men
           <div className="product-dialog__meta">
             {item.allergens.length > 0 && <p><strong>Alérgenos</strong>{item.allergens.join(" · ")}</p>}
           </div>
-          <button className="primary-button product-dialog__cart" type="button" onClick={addToCart} data-added={added}>{added ? <Check aria-hidden="true" /> : <ShoppingCart aria-hidden="true" />}{added ? "Agregado al carrito" : `Añadir · ${formatPrice(unitPriceCents * quantity)}`}</button>
+          <button className="primary-button product-dialog__cart" type="button" onClick={addToCart} data-added={added}>{added ? <Check aria-hidden="true" /> : <ShoppingCart aria-hidden="true" />}{added ? "Agregado al carrito" : `Añadir · ${totalPrice}`}</button>
           {dineInTable ? <p className="product-dialog__table-note"><UtensilsCrossed aria-hidden="true" /><span><strong>Pedido para {dineInTable.name}</strong>Agrega el producto al carrito y envíalo directamente a cocina.</span></p> : <a className="whatsapp-button" href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(whatsappText)}`} target="_blank" rel="noreferrer">Ordenar por WhatsApp</a>}
         </div>
+      </div>
+      <div className="product-dialog__mobile-action" aria-live="polite">
+        <span><small>{quantity === 1 ? "1 producto" : `${quantity} productos`}</small><strong>{totalPrice}</strong></span>
+        <button className="primary-button product-dialog__mobile-cart" type="button" onClick={addToCart} data-added={added}>{added ? <Check aria-hidden="true" /> : <ShoppingCart aria-hidden="true" />}<span>{added ? "Agregado" : "Añadir"}</span></button>
       </div>
     </dialog>
   );
