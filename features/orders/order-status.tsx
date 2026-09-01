@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Check, ChefHat, CircleDot, Clock3, ReceiptText, UtensilsCrossed } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { OrderStatus, OrderView } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
@@ -14,6 +15,7 @@ const steps: { status: OrderStatus; label: string; icon: typeof Check }[] = [
 ];
 
 export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
+  const router = useRouter();
   const [order, setOrder] = useState(initialOrder);
   const [connectionMessage, setConnectionMessage] = useState("");
 
@@ -36,6 +38,42 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
     return () => window.clearInterval(interval);
   }, [order.publicId, order.status]);
 
+  useEffect(() => {
+    if (order.status !== "PAID") return;
+    let cancelled = false;
+    let inFlight = false;
+    let ended = false;
+
+    async function endTableSession() {
+      if (inFlight || ended) return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/dine-in/session", { method: "DELETE" });
+        if (cancelled) return;
+        if (response.ok) {
+          ended = true;
+          router.replace("/menu?sesion=finalizada");
+          router.refresh();
+        } else if (response.status === 409) {
+          setConnectionMessage("Pago registrado. Cerraremos la sesión cuando se completen los demás pedidos de la mesa.");
+        } else {
+          setConnectionMessage("Pago registrado. Estamos cerrando la sesión de la mesa.");
+        }
+      } catch {
+        if (!cancelled) setConnectionMessage("Pago registrado. Reintentando cerrar la sesión de la mesa.");
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    void endTableSession();
+    const interval = window.setInterval(endTableSession, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [order.status, router]);
+
   const currentIndex = steps.findIndex((step) => step.status === order.status);
   const isCancelled = order.status === "CANCELLED";
 
@@ -44,7 +82,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
       <header className="order-status__hero">
         <p className="eyebrow">Pedido #{order.id} · Mesa {order.table?.number}</p>
         <h1>{isCancelled ? "Pedido cancelado" : order.status === "PAID" ? "¡Todo listo!" : "Tu pedido está en marcha"}</h1>
-        <p>{isCancelled ? "Consulta al personal si necesitas hacer un nuevo pedido." : "La cocina recibió tu orden. Esta pantalla se actualiza automáticamente."}</p>
+        <p>{isCancelled ? "Consulta al personal si necesitas hacer un nuevo pedido." : order.status === "PAID" ? "Pago registrado. Estamos cerrando la sesión de tu mesa." : "La cocina recibió tu orden. Esta pantalla se actualiza automáticamente."}</p>
       </header>
 
       {!isCancelled && <ol className="order-progress" aria-label="Estado del pedido">
