@@ -36,6 +36,11 @@ export function KitchenBoard({ initialOrders, onPaymentRecorded }: { initialOrde
     }, 10000);
     return () => window.clearInterval(interval);
   }, []);
+  useEffect(() => {
+    if (!message) return;
+    const timeout = window.setTimeout(() => setMessage(""), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
 
   async function advance(order: OrderView, status: OrderStatus) {
     setPendingId(order.id); setMessage("");

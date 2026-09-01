@@ -35,6 +35,12 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
     return () => window.clearInterval(interval);
   }, [refreshMetrics]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(null), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
+
   async function run(action: () => Promise<void>, success: string) {
     setNotice(null);
     try { await action(); setNotice({ kind: "success", message: success }); router.refresh(); }

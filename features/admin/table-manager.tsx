@@ -28,6 +28,11 @@ export function TableManager({ initialTables }: { initialTables: DiningTableView
     const interval = window.setInterval(refreshTables, 5000);
     return () => { stopped = true; window.clearInterval(interval); };
   }, []);
+  useEffect(() => {
+    if (!message) return;
+    const timeout = window.setTimeout(() => setMessage(""), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
 
   async function createTable(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
