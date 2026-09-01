@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, BellRing, ChefHat, Check, ReceiptText, UtensilsCrossed, X } from "lucide-react";
+import { Ban, BellRing, ChefHat, Check, ReceiptText, UtensilsCrossed, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { OrderStatus, OrderView, PaymentMethod, StaffRole } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
@@ -20,28 +20,49 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [paymentOrder, setPaymentOrder] = useState<OrderView | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const closedOrderIds = useRef(new Set<number>());
   const knownOrderIds = useRef(new Set(initialOrders.map((order) => order.id)));
+  const audioContext = useRef<AudioContext | null>(null);
+
+  const playAlarm = useCallback(async () => {
+    if (!audioContext.current) return;
+    const audio = audioContext.current;
+    if (audio.state === "suspended") await audio.resume();
+    const start = audio.currentTime;
+    [0, .22].forEach((offset, index) => {
+      const oscillator = audio.createOscillator(); const gain = audio.createGain();
+      oscillator.type = "sine"; oscillator.frequency.value = index === 0 ? 880 : 1175;
+      gain.gain.setValueAtTime(.0001, start + offset); gain.gain.exponentialRampToValueAtTime(.12, start + offset + .02); gain.gain.exponentialRampToValueAtTime(.0001, start + offset + .18);
+      oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(start + offset); oscillator.stop(start + offset + .2);
+    });
+  }, []);
+
+  async function toggleSound() {
+    if (soundEnabled) { setSoundEnabled(false); return; }
+    try {
+      audioContext.current ??= new AudioContext();
+      await audioContext.current.resume();
+      setSoundEnabled(true);
+      await playAlarm();
+      setMessage("");
+    } catch { setSoundEnabled(false); setMessage("El navegador bloqueó el sonido. Revisa el volumen y los permisos del sitio."); }
+  }
 
   const refresh = useCallback(async () => {
     try {
       const result = await requestJson<{ orders: OrderView[] }>("/api/admin/orders");
       const visible = result.orders.filter((order) => !closedOrderIds.current.has(order.id));
       const hasNew = visible.some((order) => !knownOrderIds.current.has(order.id));
-      if (hasNew) {
-        try {
-          const audio = new AudioContext(); const oscillator = audio.createOscillator(); const gain = audio.createGain();
-          oscillator.frequency.value = 880; gain.gain.setValueAtTime(0.08, audio.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.45);
-          oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(); oscillator.stop(audio.currentTime + 0.45);
-        } catch { /* Browser audio permission is optional; visual alert remains. */ }
-      }
+      if (hasNew && soundEnabled) { try { await playAlarm(); } catch { setSoundEnabled(false); } }
       visible.forEach((order) => knownOrderIds.current.add(order.id));
       setOrders(visible); setMessage("");
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos actualizar los pedidos."); }
-  }, []);
+  }, [playAlarm, soundEnabled]);
 
   useEffect(() => setOrders(initialOrders.filter((order) => !closedOrderIds.current.has(order.id))), [initialOrders]);
   useEffect(() => { const interval = window.setInterval(refresh, 5000); return () => window.clearInterval(interval); }, [refresh]);
+  useEffect(() => () => { void audioContext.current?.close(); }, []);
   useEffect(() => { if (!message) return; const timeout = window.setTimeout(() => setMessage(""), 5000); return () => window.clearTimeout(timeout); }, [message]);
 
   async function advance(order: OrderView, status: OrderStatus, method?: PaymentMethod) {
@@ -56,7 +77,7 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
   }
 
   return <section className="kitchen-admin">
-    <header className="kitchen-admin__header"><div><p className="eyebrow">Operación en vivo</p><h2>Pedidos de todos los canales</h2></div><span><BellRing aria-hidden="true" /> Sonido y actualización cada 5 s</span></header>
+    <header className="kitchen-admin__header"><div><p className="eyebrow">Operación en vivo</p><h2>Pedidos de todos los canales</h2></div><div className="kitchen-alert-controls"><span><BellRing aria-hidden="true" /> Actualización cada 5 s</span><button type="button" data-active={soundEnabled} onClick={() => void toggleSound()}>{soundEnabled ? <Volume2 /> : <VolumeX />}{soundEnabled ? "Alarma activa" : "Activar alarma"}</button></div></header>
     {message && <p className="admin-inline-message" role="status">{message}</p>}
     <div className="kitchen-columns">{columns.map((column) => {
       const columnOrders = orders.filter((order) => order.status === column.status);

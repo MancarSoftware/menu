@@ -22,9 +22,19 @@ export async function POST(request: NextRequest) {
     const session = await requireRoleApi(["ADMIN"]);
     if (!session) return NextResponse.json({ error: "Sin permisos." }, { status: 403 });
     if (!assertSameOrigin(request)) return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
-    const input = createSchema.parse(await request.json());
-    const user = await db.adminUser.create({ data: { name: input.name, email: input.email.toLowerCase(), role: input.role, passwordHash: await hash(input.password, 12), mustChangePassword: true } });
-    await db.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "STAFF_CREATED", entityType: "AdminUser", entityId: user.id, details: JSON.stringify({ email: user.email, role: user.role }) } });
+    const parsed = createSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      const passwordIssue = parsed.error.issues.find((issue) => issue.path[0] === "password");
+      return NextResponse.json({ error: passwordIssue?.message ?? "Revisa el nombre, correo, rol y contraseña." }, { status: 400 });
+    }
+    const input = { ...parsed.data, email: parsed.data.email.toLowerCase() };
+    if (await db.adminUser.findUnique({ where: { email: input.email } })) return NextResponse.json({ error: "Ya existe un usuario con ese correo." }, { status: 409 });
+    const passwordHash = await hash(input.password, 12);
+    const user = await db.$transaction(async (transaction) => {
+      const created = await transaction.adminUser.create({ data: { name: input.name, email: input.email, role: input.role, passwordHash, isActive: true, mustChangePassword: true, passwordChangedAt: new Date() } });
+      await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "STAFF_CREATED", entityType: "AdminUser", entityId: created.id, details: JSON.stringify({ email: created.email, role: created.role }) } });
+      return created;
+    });
     return NextResponse.json({ user: view(user) }, { status: 201 });
   } catch (error) { return apiError(error); }
 }
