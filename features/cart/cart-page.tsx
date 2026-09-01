@@ -73,9 +73,10 @@ export function CartPage({ whatsapp, pickupAddress, city, dineInTable }: { whats
       <div className="cart-items">
         {entries.map((entry) => {
           const unitPriceCents = entry.product.priceCents + entry.customization.extraPriceCents;
+          const lineTotalCents = unitPriceCents * entry.quantity;
           return <article className="cart-item" key={entry.lineId}>
             <span className="cart-item__image"><Image src={entry.product.imageUrl} alt="" fill sizes="72px" /></span>
-            <span><strong>{entry.product.name}</strong>{entry.customization.labels.length > 0 && <small>{entry.customization.labels.join(" · ")}</small>}<b>{formatPrice(unitPriceCents)}</b></span>
+            <span><strong>{entry.product.name}</strong>{entry.customization.labels.length > 0 && <small>{entry.customization.labels.join(" · ")}</small>}<b>{formatPrice(lineTotalCents)}</b></span>
             <div className="quantity-control"><button type="button" onClick={() => updateQuantity(entry.lineId, entry.quantity - 1)} aria-label={`Quitar una unidad de ${entry.product.name}`}><Minus aria-hidden="true" /></button><strong>{entry.quantity}</strong><button type="button" onClick={() => updateQuantity(entry.lineId, Math.min(20, entry.quantity + 1))} aria-label={`Agregar una unidad de ${entry.product.name}`}><Plus aria-hidden="true" /></button></div>
           </article>;
         })}
