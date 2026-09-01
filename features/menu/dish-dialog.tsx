@@ -76,6 +76,7 @@ export function DishDialog({ item, onClose, whatsapp }: { item: MenuItemView | n
   }
 
   function addToCart() {
+    if (!item) return;
     addItem(item, quantity, { key: selectionKey, labels: selectionLabels, extraPriceCents });
     setAdded(true);
   }
