@@ -98,12 +98,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-notice button { margin-left: auto; border: 0; background: transparent; cursor: pointer; }
 .admin-notice button svg { width: .9rem; }
 
-.admin-kpis { display: grid; grid-template-columns: repeat(3,1fr); border-block: 1px solid var(--line); }
+.admin-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border-block: 1px solid var(--line); }
 .admin-kpis > div { min-height: 160px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--line); }
 .admin-kpis > div:last-child { border-right: 0; }
 .admin-kpis span { color: var(--ink-muted); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
 .admin-kpis strong { font-size: clamp(2.8rem, 5vw, 4.6rem); line-height: 1; }
 .admin-kpis small { color: #807d78; font-size: .35em; }
+.admin-kpis .admin-kpi-money { display: grid; gap: .35rem; color: var(--ember-light); font-size: clamp(2rem, 3.8vw, 3.6rem); }
+.admin-kpis .admin-kpi-money small { font-size: .28em; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
 .admin-overview { display: grid; gap: 4rem; }
 .admin-overview__lead { max-width: 60rem; padding: 3rem 0; }
 .admin-overview__lead h2 { max-width: 16ch; margin: 1rem 0; font-size: clamp(2.5rem, 5vw, 4.8rem); line-height: .95; }
@@ -220,6 +222,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .kitchen-empty { margin: 0; padding: 2rem .5rem; color: #706d69; font-size: .64rem; text-align: center; }
 
 @media (max-width: 1180px) {
+  .admin-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .admin-kpis > div:nth-child(2n) { border-right: 0; }
+  .admin-kpis > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .admin-items-layout, .admin-split, .table-admin { grid-template-columns: 1fr; }
   .admin-item-editor { order: 2; }
   .admin-item-list { order: 1; }
@@ -239,7 +244,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .admin-topbar { align-items: flex-start; }
   .admin-topbar .button { min-width: 44px; padding-inline: .8rem; font-size: 0; }
   .admin-kpis { grid-template-columns: 1fr; }
-  .admin-kpis > div { min-height: 120px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .admin-kpis > div, .admin-kpis > div:nth-child(2n) { min-height: 120px; border-right: 0; border-bottom: 1px solid var(--line); }
   .restaurant-editor { grid-template-columns: 1fr; }
   .restaurant-editor > section { position: static; }
 }

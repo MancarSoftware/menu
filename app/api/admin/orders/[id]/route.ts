@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       });
       if (["PAID", "CANCELLED"].includes(input.status) && current.diningTableId) {
         const remaining = await transaction.customerOrder.count({ where: { diningTableId: current.diningTableId, id: { not: orderId }, status: { notIn: ["PAID", "CANCELLED"] } } });
-        if (remaining === 0) await transaction.diningTable.update({ where: { id: current.diningTableId }, data: { status: "CLEANING" } });
+        if (remaining === 0) await transaction.diningTable.updateMany({ where: { id: current.diningTableId, isActive: true }, data: { status: input.status === "PAID" ? "AVAILABLE" : "CLEANING" } });
       }
       return updated;
     });

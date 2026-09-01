@@ -60,3 +60,15 @@ export async function getActiveOrders() {
   });
   return orders.map(toOrderView);
 }
+
+export async function getAdminMetrics() {
+  const paidOrders = await db.customerOrder.aggregate({
+    where: { paymentStatus: "PAID" },
+    _sum: { totalCents: true },
+    _count: { _all: true },
+  });
+  return {
+    revenueCents: paidOrders._sum.totalCents ?? 0,
+    paidOrderCount: paidOrders._count._all,
+  };
+}

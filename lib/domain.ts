@@ -84,3 +84,8 @@ export type OrderView = {
   table: Pick<DiningTableView, "id" | "number" | "name"> | null;
   items: OrderItemView[];
 };
+
+export type AdminMetricsView = {
+  revenueCents: number;
+  paidOrderCount: number;
+};

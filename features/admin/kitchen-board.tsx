@@ -20,7 +20,7 @@ const nextActions: Partial<Record<OrderStatus, { status: OrderStatus; label: str
   SERVED: { status: "PAID", label: "Cobrar efectivo", icon: ReceiptText },
 };
 
-export function KitchenBoard({ initialOrders }: { initialOrders: OrderView[] }) {
+export function KitchenBoard({ initialOrders, onPaymentRecorded }: { initialOrders: OrderView[]; onPaymentRecorded?: () => void }) {
   const [orders, setOrders] = useState(initialOrders);
   const [message, setMessage] = useState("");
   const [pendingId, setPendingId] = useState<number | null>(null);
@@ -43,6 +43,7 @@ export function KitchenBoard({ initialOrders }: { initialOrders: OrderView[] }) 
       const result = await requestJson<{ order: OrderView }>(`/api/admin/orders/${order.id}`, "PATCH", { status, ...(status === "PAID" ? { paymentMethod: "CASH" } : {}) });
       if (["PAID", "CANCELLED"].includes(result.order.status)) closedOrderIds.current.add(order.id);
       setOrders((current) => closedOrderIds.current.has(order.id) ? current.filter((candidate) => candidate.id !== order.id) : current.map((candidate) => candidate.id === order.id ? result.order : candidate));
+      if (result.order.status === "PAID") onPaymentRecorded?.();
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos actualizar el pedido."); }
     finally { setPendingId(null); }
   }

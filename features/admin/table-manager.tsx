@@ -14,6 +14,20 @@ export function TableManager({ initialTables }: { initialTables: DiningTableView
   const [message, setMessage] = useState("");
 
   useEffect(() => setTables(initialTables), [initialTables]);
+  useEffect(() => {
+    let stopped = false;
+    async function refreshTables() {
+      try {
+        const result = await requestJson<{ tables: DiningTableView[] }>("/api/tables");
+        if (!stopped) setTables(result.tables);
+      } catch (error) {
+        if (!stopped) setMessage(error instanceof Error ? error.message : "No pudimos actualizar las mesas.");
+      }
+    }
+    void refreshTables();
+    const interval = window.setInterval(refreshTables, 5000);
+    return () => { stopped = true; window.clearInterval(interval); };
+  }, []);
 
   async function createTable(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

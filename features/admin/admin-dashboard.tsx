@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Check, ChefHat, ChevronRight, CircleOff, Edit3, ExternalLink, ImagePlus, LayoutList, LogOut, MapPinned, Plus, QrCode, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
-import type { DiningTableView, MenuCategoryView, MenuItemView, OrderView, RestaurantView } from "@/lib/domain";
+import type { AdminMetricsView, DiningTableView, MenuCategoryView, MenuItemView, OrderView, RestaurantView } from "@/lib/domain";
 import { formatPrice, slugify } from "@/lib/format";
 import { requestJson, SessionExpiredError } from "./admin-api";
 import { KitchenBoard } from "./kitchen-board";
@@ -13,12 +13,27 @@ import { TableManager } from "./table-manager";
 type Tab = "overview" | "orders" | "tables" | "categories" | "items" | "restaurant";
 type Notice = { kind: "success" | "error"; message: string } | null;
 
-export function AdminDashboard({ categories, restaurant, tables, orders, userEmail }: { categories: MenuCategoryView[]; restaurant: RestaurantView; tables: DiningTableView[]; orders: OrderView[]; userEmail: string }) {
+export function AdminDashboard({ categories, restaurant, tables, orders, initialMetrics, userEmail }: { categories: MenuCategoryView[]; restaurant: RestaurantView; tables: DiningTableView[]; orders: OrderView[]; initialMetrics: AdminMetricsView; userEmail: string }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
   const [notice, setNotice] = useState<Notice>(null);
+  const [metrics, setMetrics] = useState(initialMetrics);
   const items = categories.flatMap((category) => category.items);
   const available = items.filter((item) => item.isAvailable).length;
+
+  const refreshMetrics = useCallback(async () => {
+    try {
+      const result = await requestJson<{ metrics: AdminMetricsView }>("/api/admin/metrics");
+      setMetrics(result.metrics);
+    } catch (error) {
+      if (error instanceof SessionExpiredError) router.push("/admin/login");
+    }
+  }, [router]);
+
+  useEffect(() => {
+    const interval = window.setInterval(refreshMetrics, 10000);
+    return () => window.clearInterval(interval);
+  }, [refreshMetrics]);
 
   async function run(action: () => Promise<void>, success: string) {
     setNotice(null);
@@ -47,8 +62,8 @@ export function AdminDashboard({ categories, restaurant, tables, orders, userEma
         <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "orders" ? "Cocina" : tab === "tables" ? "Mesas" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
         {notice && <div className="admin-notice" data-kind={notice.kind} role="status">{notice.kind === "success" ? <Check aria-hidden="true" /> : <CircleOff aria-hidden="true" />}{notice.message}<button onClick={() => setNotice(null)} aria-label="Cerrar aviso"><X aria-hidden="true" /></button></div>}
 
-        {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} onNavigate={setTab} />}
-        {tab === "orders" && <KitchenBoard initialOrders={orders} />}
+        {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} metrics={metrics} onNavigate={setTab} />}
+        {tab === "orders" && <KitchenBoard initialOrders={orders} onPaymentRecorded={() => { void refreshMetrics(); }} />}
         {tab === "tables" && <TableManager initialTables={tables} />}
         {tab === "categories" && <CategoryManager categories={categories} run={run} />}
         {tab === "items" && <ItemManager categories={categories} run={run} />}
@@ -58,10 +73,10 @@ export function AdminDashboard({ categories, restaurant, tables, orders, userEma
   );
 }
 
-function Overview({ categories, itemCount, availableCount, onNavigate }: { categories: MenuCategoryView[]; itemCount: number; availableCount: number; onNavigate: (tab: Tab) => void }) {
+function Overview({ categories, itemCount, availableCount, metrics, onNavigate }: { categories: MenuCategoryView[]; itemCount: number; availableCount: number; metrics: AdminMetricsView; onNavigate: (tab: Tab) => void }) {
   return (
     <div className="admin-overview">
-      <section className="admin-kpis"><div><span>Categorías activas</span><strong>{categories.filter((item) => item.isActive).length}<small> / {categories.length}</small></strong></div><div><span>Productos disponibles</span><strong>{availableCount}<small> / {itemCount}</small></strong></div><div><span>Destacados</span><strong>{categories.flatMap((c) => c.items).filter((i) => i.isFeatured).length}</strong></div></section>
+      <section className="admin-kpis"><div><span>Categorías activas</span><strong>{categories.filter((item) => item.isActive).length}<small> / {categories.length}</small></strong></div><div><span>Productos disponibles</span><strong>{availableCount}<small> / {itemCount}</small></strong></div><div><span>Destacados</span><strong>{categories.flatMap((c) => c.items).filter((i) => i.isFeatured).length}</strong></div><div><span>Ingresos cobrados</span><strong className="admin-kpi-money">{formatPrice(metrics.revenueCents)}<small>{metrics.paidOrderCount === 1 ? "1 cobro" : `${metrics.paidOrderCount} cobros`}</small></strong></div></section>
       <section className="admin-overview__lead"><p className="eyebrow">Estado del menú</p><h2>{availableCount === itemCount ? "Todo está disponible." : `${itemCount - availableCount} productos agotados.`}</h2><p>Los cambios publicados se reflejan en el menú público al actualizar la página.</p><button className="button button--solid" onClick={() => onNavigate("items")}>Gestionar productos</button></section>
       <section className="admin-category-status"><header><h2>Lectura por categoría</h2><button onClick={() => onNavigate("categories")}>Ordenar categorías →</button></header>{categories.map((category) => <div key={category.id}><span className="status-dot" data-active={category.isActive} /><strong>{category.name}</strong><span>{category.items.filter((item) => item.isAvailable).length} de {category.items.length} disponibles</span></div>)}</section>
     </div>
