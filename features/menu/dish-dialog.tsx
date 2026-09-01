@@ -87,8 +87,8 @@ export function DishDialog({ item, onClose, whatsapp, dineInTable }: { item: Men
 
   return (
     <dialog ref={ref} className="product-dialog" onClose={onClose} onClick={(event) => { if (event.target === ref.current) ref.current.close(); }} aria-labelledby="product-dialog-title">
+      <button ref={closeRef} className="product-dialog__close" type="button" autoFocus onClick={() => ref.current?.close()} aria-label="Cerrar detalle"><X aria-hidden="true" /></button>
       <div className="product-dialog__panel">
-        <button ref={closeRef} className="product-dialog__close" type="button" autoFocus onClick={() => ref.current?.close()} aria-label="Cerrar detalle"><X aria-hidden="true" /></button>
         <div className="product-dialog__image"><Image src={item.imageUrl} alt={item.name} fill sizes="(max-width: 760px) 100vw, 50vw" priority /></div>
         <div className="product-dialog__content">
           <div className="product-dialog__badges">

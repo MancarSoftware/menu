@@ -178,7 +178,7 @@
 .product-dialog { width: min(1080px, calc(100% - 2rem)); max-height: min(780px, calc(100dvh - 2rem)); padding: 0; overflow: hidden; border: 3px solid var(--fast-ink); border-radius: 7px; background: var(--fast-cream); color: var(--fast-ink); box-shadow: 9px 9px 0 var(--fast-orange); }
 .product-dialog::backdrop { background: rgba(16,17,21,.72); backdrop-filter: blur(5px); }
 .product-dialog__panel { height: min(780px, calc(100dvh - 2rem)); min-height: 620px; display: grid; grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr); }
-.product-dialog__close { position: absolute; z-index: 2; top: 1rem; right: 1rem; width: 44px; height: 44px; display: grid; place-items: center; border: 2px solid #fff; border-radius: 4px; background: var(--fast-ink); color: #fff; cursor: pointer; }
+.product-dialog__close { position: absolute; z-index: 6; top: 1rem; right: 1rem; width: 44px; height: 44px; display: grid; place-items: center; border: 2px solid #fff; border-radius: 4px; background: var(--fast-ink); color: #fff; cursor: pointer; }
 .product-dialog__close svg { width: 1rem; }
 .product-dialog__image { position: relative; min-height: 0; overflow: hidden; border-right: 3px solid var(--fast-ink); background: #e8d8bf; }
 .product-dialog__image::before { position: absolute; z-index: 0; inset: 0; background: linear-gradient(135deg, transparent 0 47%, rgba(255,201,40,.5) 47% 53%, transparent 53%); content: ""; }
@@ -394,8 +394,9 @@
   .menu-product__add { min-width: 42px; width: 42px; height: 42px; padding: 0; }
   .menu-product__add span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
   .product-dialog { width: 100%; height: 94dvh; max-height: 94dvh; margin: auto 0 0; border-radius: 7px 7px 0 0; box-shadow: none; }
-  .product-dialog[open] { display: flex; flex-direction: column; }
-  .product-dialog__panel { height: auto; min-height: 0; max-height: none; display: block; flex: 1 1 auto; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scroll-behavior: smooth; scroll-padding-block: 1rem; scrollbar-color: var(--fast-orange) var(--fast-soft); -webkit-overflow-scrolling: touch; }
+  .product-dialog[open] { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+  .product-dialog__panel { height: 100%; min-height: 0; max-height: none; display: block; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scroll-behavior: smooth; scroll-padding-block: 1rem; scrollbar-color: var(--fast-orange) var(--fast-soft); -webkit-overflow-scrolling: touch; }
+  .product-dialog__close { top: .75rem; right: .75rem; }
   .product-dialog__image { height: clamp(205px, 28dvh, 260px); min-height: 0; border-right: 0; border-bottom: 3px solid var(--fast-ink); }
   .product-dialog__image img { padding: .4rem; }
   .product-dialog__content { padding: 1rem 1rem 1.4rem; overflow: visible; }
@@ -408,7 +409,7 @@
   .product-option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .product-dialog__meta { display: none; }
   .product-dialog__content > .product-dialog__cart { display: none; }
-  .product-dialog__mobile-action { position: relative; z-index: 3; flex: 0 0 auto; min-height: 76px; padding: .65rem max(1rem, env(safe-area-inset-right)) max(.65rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); display: grid; grid-template-columns: auto minmax(150px, .62fr); gap: 1rem; align-items: center; border-top: 3px solid var(--fast-ink); background: rgba(255,247,232,.98); box-shadow: 0 -8px 24px rgba(17,16,14,.12); backdrop-filter: blur(12px); }
+  .product-dialog__mobile-action { position: relative; z-index: 3; box-sizing: border-box; min-height: 76px; padding: .65rem max(1rem, env(safe-area-inset-right)) max(.65rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); display: grid; grid-template-columns: minmax(72px, auto) minmax(150px, .62fr); gap: 1rem; align-items: center; align-self: stretch; border-top: 3px solid var(--fast-ink); background: rgba(255,247,232,.98); box-shadow: 0 -8px 24px rgba(17,16,14,.12); backdrop-filter: blur(12px); }
   .product-dialog__mobile-action > span { display: grid; }
   .product-dialog__mobile-action small { color: var(--fast-muted); font-size: .58rem; }
   .product-dialog__mobile-action strong { color: var(--fast-orange); font-size: 1.05rem; }
