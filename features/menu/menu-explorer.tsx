@@ -17,7 +17,7 @@ const filters: { id: MenuFilter; label: string }[] = [
   { id: "chef", label: "Recomendados" },
 ];
 
-export function MenuExplorer({ categories, initialDishSlug, whatsapp }: { categories: MenuCategoryView[]; initialDishSlug?: string; whatsapp: string }) {
+export function MenuExplorer({ categories, initialDishSlug, whatsapp, dineInTable }: { categories: MenuCategoryView[]; initialDishSlug?: string; whatsapp: string; dineInTable: { number: number; name: string } | null }) {
   const { addItem } = useCart();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MenuFilter>("all");
@@ -118,7 +118,7 @@ export function MenuExplorer({ categories, initialDishSlug, whatsapp }: { catego
       </div>
 
       <p className="sr-only" aria-live="polite">{addedId ? "Producto agregado al carrito" : ""}</p>
-      <DishDialog item={selectedItem} onClose={closeItem} whatsapp={whatsapp} />
+      <DishDialog item={selectedItem} onClose={closeItem} whatsapp={whatsapp} dineInTable={dineInTable} />
     </>
   );
 }

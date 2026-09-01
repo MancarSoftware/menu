@@ -223,6 +223,10 @@
 .product-dialog__meta strong { color: var(--fast-ink); }
 .product-dialog__cart, .product-dialog .whatsapp-button { width: 100%; margin-top: .65rem; }
 .product-dialog__cart[data-added="true"] { background: var(--fast-green); }
+.product-dialog__table-note { margin: .75rem 0 0; padding: .75rem; display: flex; align-items: center; gap: .7rem; border: 2px solid var(--fast-ink); background: var(--fast-yellow); }
+.product-dialog__table-note svg { width: 1.4rem; flex: 0 0 auto; }
+.product-dialog__table-note span { display: grid; color: var(--fast-muted); font-size: .62rem; }
+.product-dialog__table-note strong { color: var(--fast-ink); font-size: .72rem; }
 
 /* Cart */
 .cart-page { max-width: 780px; padding: 1rem; background: var(--fast-cream); }
@@ -251,10 +255,11 @@
 .fulfillment__heading h2 { margin: 0; font-family: var(--font-poster), var(--font-sans); font-size: 1.35rem; font-weight: 400; letter-spacing: -.03em; text-transform: uppercase; }
 .fulfillment__heading p { margin: .1rem 0 0; color: var(--fast-muted); font-size: .64rem; }
 .fulfillment__choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .6rem; }
-.fulfillment__choices button { min-height: 86px; padding: .75rem; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: .65rem; align-items: center; border: 2px solid var(--fast-ink); background: #fff; color: var(--fast-ink); text-align: left; cursor: pointer; }
-.fulfillment__choices button[aria-pressed="true"] { background: var(--fast-yellow); box-shadow: 4px 4px 0 var(--fast-ink); transform: translate(-2px,-2px); }
-.fulfillment__choices button > svg { width: 38px; height: 38px; padding: .45rem; border: 2px solid var(--fast-ink); background: var(--fast-cream); color: var(--fast-orange); }
-.fulfillment__choices button > span { min-width: 0; display: grid; }
+.fulfillment__choices button, .fulfillment__locked { min-height: 86px; padding: .75rem; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: .65rem; align-items: center; border: 2px solid var(--fast-ink); background: #fff; color: var(--fast-ink); text-align: left; }
+.fulfillment__choices button { cursor: pointer; }
+.fulfillment__choices button[aria-pressed="true"], .fulfillment__locked { background: var(--fast-yellow); box-shadow: 4px 4px 0 var(--fast-ink); transform: translate(-2px,-2px); }
+.fulfillment__choices button > svg, .fulfillment__locked > svg { width: 38px; height: 38px; padding: .45rem; border: 2px solid var(--fast-ink); background: var(--fast-cream); color: var(--fast-orange); }
+.fulfillment__choices button > span, .fulfillment__locked > span { min-width: 0; display: grid; }
 .fulfillment__choices strong { font-size: .76rem; }
 .fulfillment__choices small { color: var(--fast-muted); font-size: .56rem; }
 .fulfillment__choices b { color: var(--fast-orange); font-size: .66rem; white-space: nowrap; }

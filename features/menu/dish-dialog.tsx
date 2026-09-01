@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Flame, Minus, Plus, ShoppingCart, Sparkles, X } from "lucide-react";
+import { Check, Flame, Minus, Plus, ShoppingCart, Sparkles, UtensilsCrossed, X } from "lucide-react";
 import { useCart } from "@/features/cart/cart-context";
 import type { MenuItemView } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
 import { getProductOptions } from "./product-options";
 
-export function DishDialog({ item, onClose, whatsapp }: { item: MenuItemView | null; onClose: () => void; whatsapp: string }) {
+export function DishDialog({ item, onClose, whatsapp, dineInTable }: { item: MenuItemView | null; onClose: () => void; whatsapp: string; dineInTable: { number: number; name: string } | null }) {
   const { addItem } = useCart();
   const ref = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -136,7 +136,7 @@ export function DishDialog({ item, onClose, whatsapp }: { item: MenuItemView | n
             {item.allergens.length > 0 && <p><strong>Alérgenos</strong>{item.allergens.join(" · ")}</p>}
           </div>
           <button className="primary-button product-dialog__cart" type="button" onClick={addToCart} data-added={added}>{added ? <Check aria-hidden="true" /> : <ShoppingCart aria-hidden="true" />}{added ? "Agregado al carrito" : `Añadir · ${formatPrice(unitPriceCents * quantity)}`}</button>
-          <a className="whatsapp-button" href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(whatsappText)}`} target="_blank" rel="noreferrer">Ordenar por WhatsApp</a>
+          {dineInTable ? <p className="product-dialog__table-note"><UtensilsCrossed aria-hidden="true" /><span><strong>Pedido para {dineInTable.name}</strong>Agrega el producto al carrito y envíalo directamente a cocina.</span></p> : <a className="whatsapp-button" href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(whatsappText)}`} target="_blank" rel="noreferrer">Ordenar por WhatsApp</a>}
         </div>
       </div>
     </dialog>

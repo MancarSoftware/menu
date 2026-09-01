@@ -82,11 +82,12 @@ export function CartPage({ whatsapp, pickupAddress, city, dineInTable }: { whats
       </div>
 
       <section className="fulfillment" aria-labelledby="fulfillment-title">
-        <div className="fulfillment__heading"><span>02</span><div><h2 id="fulfillment-title">¿Cómo lo quieres?</h2><p>Elige antes de confirmar tu pedido.</p></div></div>
+        <div className="fulfillment__heading"><span>02</span><div><h2 id="fulfillment-title">{dineInTable ? "Pedido en tu mesa" : "¿Cómo lo quieres?"}</h2><p>{dineInTable ? "El QR vinculó este pedido con tu mesa." : "Elige antes de confirmar tu pedido."}</p></div></div>
         <div className="fulfillment__choices" role="group" aria-label="Modalidad del pedido">
-          {dineInTable && <button type="button" aria-pressed={fulfillment === "dine-in"} onClick={() => setFulfillment("dine-in")}><UtensilsCrossed aria-hidden="true" /><span><strong>En la mesa</strong><small>{dineInTable.name} · Mesa {dineInTable.number}</small></span><b>Sin recargo</b></button>}
-          <button type="button" aria-pressed={fulfillment === "delivery"} onClick={() => setFulfillment("delivery")}><Bike aria-hidden="true" /><span><strong>Delivery</strong><small>Lo llevamos a tu dirección</small></span><b>+{formatPrice(deliveryFeeCents)}</b></button>
-          <button type="button" aria-pressed={fulfillment === "pickup"} onClick={() => setFulfillment("pickup")}><Store aria-hidden="true" /><span><strong>Retiro</strong><small>Recógelo en el local</small></span><b>Gratis</b></button>
+          {dineInTable ? <div className="fulfillment__locked"><UtensilsCrossed aria-hidden="true" /><span><strong>Servicio en mesa</strong><small>{dineInTable.name} · Mesa {dineInTable.number}</small></span><b>Confirmado</b></div> : <>
+            <button type="button" aria-pressed={fulfillment === "delivery"} onClick={() => setFulfillment("delivery")}><Bike aria-hidden="true" /><span><strong>Delivery</strong><small>Lo llevamos a tu dirección</small></span><b>+{formatPrice(deliveryFeeCents)}</b></button>
+            <button type="button" aria-pressed={fulfillment === "pickup"} onClick={() => setFulfillment("pickup")}><Store aria-hidden="true" /><span><strong>Retiro</strong><small>Recógelo en el local</small></span><b>Gratis</b></button>
+          </>}
         </div>
 
         {fulfillment === "delivery" ? <div className="checkout-fields">

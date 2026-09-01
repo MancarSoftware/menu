@@ -12,7 +12,7 @@ export default async function MenuPage({ searchParams }: { searchParams: Promise
   return (
     <main id="contenido" className="fast-page menu-page">
       <section className="menu-heading"><h1 className="sr-only">Menú</h1><p>{table ? `Estás ordenando desde ${table.name} · Mesa ${table.number}` : "Elige, agrega y ordena a tu manera."}</p></section>
-      {categories.length ? <MenuExplorer categories={categories} initialDishSlug={plato} whatsapp={restaurant.whatsapp} /> : <section className="menu-empty"><h2>Estamos preparando el menú</h2><p>Vuelve pronto o escríbenos para conocer lo disponible.</p></section>}
+      {categories.length ? <MenuExplorer categories={categories} initialDishSlug={plato} whatsapp={restaurant.whatsapp} dineInTable={table ? { number: table.number, name: table.name } : null} /> : <section className="menu-empty"><h2>Estamos preparando el menú</h2><p>Vuelve pronto o escríbenos para conocer lo disponible.</p></section>}
     </main>
   );
 }
