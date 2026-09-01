@@ -61,6 +61,9 @@ export type DiningTableView = {
 };
 
 export type OrderStatus = "RECEIVED" | "PREPARING" | "READY" | "SERVED" | "PAID" | "CANCELLED";
+export type OrderMode = "DINE_IN" | "DELIVERY" | "PICKUP";
+export type PaymentMethod = "CASH" | "CARD" | "TRANSFER";
+export type StaffRole = "ADMIN" | "CASHIER" | "WAITER" | "KITCHEN";
 export type OrderItemView = {
   id: string;
   productName: string;
@@ -75,13 +78,18 @@ export type OrderView = {
   orderNumber: number;
   businessDate: string;
   publicId: string;
-  mode: "DINE_IN";
+  mode: OrderMode;
   status: OrderStatus;
-  paymentStatus: "PENDING" | "PAID";
-  paymentMethod: string | null;
+  paymentStatus: "PENDING" | "PAID" | "PARTIALLY_REFUNDED" | "REFUNDED";
+  paymentMethod: PaymentMethod | null;
   subtotalCents: number;
   totalCents: number;
   notes: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  deliveryAddress: string | null;
+  acknowledgedAt: string | null;
+  version: number;
   createdAt: string;
   table: Pick<DiningTableView, "id" | "number" | "name"> | null;
   items: OrderItemView[];
@@ -91,4 +99,40 @@ export type AdminMetricsView = {
   date: string;
   revenueCents: number;
   paidOrderCount: number;
+};
+
+export type RevenuePoint = { label: string; revenueCents: number; paymentCount: number };
+export type RevenueReportView = {
+  from: string;
+  to: string;
+  revenueCents: number;
+  refundsCents: number;
+  netRevenueCents: number;
+  paymentCount: number;
+  points: RevenuePoint[];
+};
+
+export type CashShiftView = {
+  id: string;
+  businessDate: string;
+  status: "OPEN" | "CLOSED";
+  openingBalanceCents: number;
+  cashSalesCents: number;
+  expectedCashCents: number;
+  actualCashCents: number | null;
+  discrepancyCents: number | null;
+  openedByName: string;
+  closedByName: string | null;
+  openedAt: string;
+  closedAt: string | null;
+};
+
+export type StaffUserView = {
+  id: string;
+  email: string;
+  name: string;
+  role: StaffRole;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  lastLoginAt: string | null;
 };

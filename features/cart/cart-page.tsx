@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bike, Clock3, MapPin, Minus, Plus, ShoppingBag, Store, Trash2, UtensilsCrossed } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "./cart-context";
 
@@ -12,30 +12,20 @@ const deliveryFeeCents = 250;
 type Fulfillment = "delivery" | "pickup" | "dine-in";
 type DineInTable = { number: number; name: string } | null;
 
-export function CartPage({ whatsapp, pickupAddress, city, dineInTable }: { whatsapp: string; pickupAddress: string; city: string; dineInTable: DineInTable }) {
+export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: string; pickupAddress: string; city: string; dineInTable: DineInTable }) {
   const router = useRouter();
   const { entries, totalCents, updateQuantity, clearCart } = useCart();
   const [fulfillment, setFulfillment] = useState<Fulfillment>(dineInTable ? "dine-in" : "delivery");
   const [address, setAddress] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const requestId = useRef("");
   const serviceFeeCents = fulfillment === "delivery" ? deliveryFeeCents : 0;
   const finalTotal = entries.length ? totalCents + serviceFeeCents : 0;
-  const canOrder = entries.length > 0 && (fulfillment !== "delivery" || address.trim().length >= 8);
-
-  const orderUrl = useMemo(() => {
-    const lines = entries.flatMap((entry) => {
-      const unitPriceCents = entry.product.priceCents + entry.customization.extraPriceCents;
-      return [`• ${entry.quantity} × ${entry.product.name} — ${formatPrice(unitPriceCents * entry.quantity)}`, ...entry.customization.labels.map((label) => `  ${label}`)];
-    });
-    const serviceLines = fulfillment === "delivery"
-      ? ["Modalidad: Delivery", `Envío: ${formatPrice(deliveryFeeCents)}`, `Dirección: ${address.trim()}`]
-      : ["Modalidad: Retiro en el local", `Retiro en: ${pickupAddress}, ${city}`];
-    const message = ["Hola, quisiera hacer este pedido:", "", ...lines, "", ...serviceLines, `Total: ${formatPrice(finalTotal)}`, notes.trim() ? `Instrucciones: ${notes.trim()}` : ""].filter(Boolean).join("\n");
-    return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
-  }, [address, city, entries, finalTotal, fulfillment, notes, pickupAddress, whatsapp]);
+  const canOrder = entries.length > 0 && customerName.trim().length >= 2 && /^\+?[0-9\s-]{7,20}$/.test(customerPhone.trim()) && (fulfillment !== "delivery" || address.trim().length >= 8);
 
   async function submitDineInOrder() {
     if (!dineInTable || pending || !entries.length) return;
@@ -61,6 +51,32 @@ export function CartPage({ whatsapp, pickupAddress, city, dineInTable }: { whats
     } finally {
       setPending(false);
     }
+  }
+
+  async function submitPublicOrder() {
+    if (!canOrder || pending || fulfillment === "dine-in") return;
+    setPending(true); setError("");
+    if (!requestId.current) requestId.current = crypto.randomUUID();
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientRequestId: requestId.current,
+          mode: fulfillment === "delivery" ? "DELIVERY" : "PICKUP",
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          deliveryAddress: fulfillment === "delivery" ? address.trim() : "",
+          notes: notes.trim(),
+          items: entries.map((entry) => ({ productId: entry.product.id, quantity: entry.quantity, customizationKey: entry.customization.key })),
+        }),
+      });
+      const body = await response.json() as { order?: { publicId: string }; error?: string };
+      if (!response.ok || !body.order) throw new Error(body.error ?? "No pudimos registrar el pedido.");
+      clearCart();
+      router.push(`/pedido/${body.order.publicId}`);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "No pudimos registrar el pedido."); }
+    finally { setPending(false); }
   }
 
   if (!entries.length) {
@@ -91,9 +107,10 @@ export function CartPage({ whatsapp, pickupAddress, city, dineInTable }: { whats
           </>}
         </div>
 
+        {fulfillment !== "dine-in" && <div className="checkout-fields checkout-fields--customer"><label>Nombre<input required minLength={2} maxLength={100} value={customerName} onChange={(event) => setCustomerName(event.target.value)} autoComplete="name" /></label><label>Teléfono<input required inputMode="tel" minLength={7} maxLength={20} value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value.replace(/[^0-9+\s-]/g, ""))} autoComplete="tel" /></label></div>}
         {fulfillment === "delivery" ? <div className="checkout-fields">
           <label>Dirección de envío<input required minLength={8} maxLength={240} value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Calle, número y referencia" autoComplete="street-address" /></label>
-        </div> : fulfillment === "pickup" ? <div className="pickup-note"><MapPin aria-hidden="true" /><span><strong>Retira en {city}</strong><small>{pickupAddress}</small></span><span><Clock3 aria-hidden="true" /> Te confirmaremos la hora por WhatsApp</span></div> : <div className="pickup-note dine-in-note"><UtensilsCrossed aria-hidden="true" /><span><strong>Pedido para {dineInTable?.name}</strong><small>La cocina recibirá directamente tu orden.</small></span><span><Clock3 aria-hidden="true" /> Verás aquí cada cambio de estado</span></div>}
+        </div> : fulfillment === "pickup" ? <div className="pickup-note"><MapPin aria-hidden="true" /><span><strong>Retira en {city}</strong><small>{pickupAddress}</small></span><span><Clock3 aria-hidden="true" /> Verás aquí cada cambio de estado</span></div> : <div className="pickup-note dine-in-note"><UtensilsCrossed aria-hidden="true" /><span><strong>Pedido para {dineInTable?.name}</strong><small>La cocina recibirá directamente tu orden.</small></span><span><Clock3 aria-hidden="true" /> Verás aquí cada cambio de estado</span></div>}
       </section>
 
       <div className="checkout-fields">
@@ -103,7 +120,7 @@ export function CartPage({ whatsapp, pickupAddress, city, dineInTable }: { whats
       <div className="cart-total"><span>Total <small>{fulfillment === "delivery" ? "incluye delivery" : fulfillment === "dine-in" ? "pedido en mesa" : "sin costo de retiro"}</small></span><strong>{formatPrice(finalTotal)}</strong></div>
       {error && <p className="checkout-error" role="alert">{error}</p>}
 
-      {fulfillment === "dine-in" ? <button className="primary-button checkout-button" type="button" disabled={pending} onClick={submitDineInOrder}>{pending ? "Enviando a cocina…" : `Enviar a cocina · ${formatPrice(finalTotal)}`}</button> : canOrder ? <a className="whatsapp-button checkout-button" href={orderUrl} target="_blank" rel="noreferrer">Confirmar por WhatsApp · {formatPrice(finalTotal)}</a> : <button className="whatsapp-button checkout-button" type="button" disabled>Escribe tu dirección para ordenar</button>}
+      {fulfillment === "dine-in" ? <button className="primary-button checkout-button" type="button" disabled={pending} onClick={submitDineInOrder}>{pending ? "Enviando a cocina…" : `Enviar a cocina · ${formatPrice(finalTotal)}`}</button> : <button className="whatsapp-button checkout-button" type="button" disabled={!canOrder || pending} onClick={submitPublicOrder}>{pending ? "Registrando pedido…" : canOrder ? `Confirmar pedido · ${formatPrice(finalTotal)}` : "Completa tus datos para ordenar"}</button>}
     </main>
   );
 }

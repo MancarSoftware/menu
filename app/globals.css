@@ -223,6 +223,86 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .kitchen-ticket > footer .button { min-height: 38px; flex: 1; padding: .45rem .7rem; font-size: .58rem; }
 .kitchen-ticket > footer svg { width: .8rem; }
 .kitchen-empty { margin: 0; padding: 2rem .5rem; color: #706d69; font-size: .64rem; text-align: center; }
+.kitchen-ticket[data-new="true"] { border-color: var(--ember); box-shadow: 0 0 0 2px rgba(255,95,63,.12); }
+.kitchen-ticket__new { padding: .45rem .7rem; display: flex; align-items: center; gap: .4rem; background: var(--ember); color: #fff; font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.kitchen-ticket__new svg { width: .75rem; }
+
+.admin-modal { position: fixed; z-index: 1000; inset: 0; padding: 1rem; display: grid; place-items: center; overflow-y: auto; background: rgba(0,0,0,.78); backdrop-filter: blur(5px); }
+.admin-modal__panel { position: relative; width: min(100%, 520px); padding: 2rem; display: grid; gap: 1.2rem; border: 1px solid var(--line-strong); border-radius: 18px; background: #191919; box-shadow: 0 30px 90px rgba(0,0,0,.55); }
+.admin-modal__panel h2 { margin: 0; font-size: 2.4rem; }
+.admin-modal__close { position: absolute; top: 1rem; right: 1rem; width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: #111; cursor: pointer; }
+.admin-modal__close svg { width: 1rem; }
+.admin-payment-total { color: var(--ember-light); font-size: 3rem; line-height: 1; }
+.admin-payment-methods { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; }
+.admin-payment-methods button { min-height: 62px; border: 1px solid var(--line-strong); background: transparent; cursor: pointer; }
+.admin-payment-methods button[data-active="true"] { border-color: var(--ember); background: rgba(255,95,63,.12); color: var(--ember-light); }
+.admin-form-help { margin: 0; color: var(--ink-muted); font-size: .66rem; }
+
+.reports-panel, .cash-register, .staff-manager { display: grid; gap: 2rem; }
+.report-summary, .order-history, .cash-register__current, .cash-history, .staff-list, .audit-list { padding: 1.5rem; border: 1px solid var(--line); border-radius: 16px; background: #171717; }
+.report-summary > header, .order-history > header, .cash-register__current > header, .cash-history > header, .staff-list > header, .audit-list > header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
+.report-summary h2, .order-history h2, .cash-register h2, .staff-manager h2 { margin: .4rem 0 0; font-size: 2rem; }
+.report-presets, .report-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.report-presets button { min-height: 36px; padding: .4rem .75rem; border: 1px solid var(--line); background: transparent; cursor: pointer; }
+.report-kpis, .cash-register__totals { margin-top: 1.5rem; display: grid; grid-template-columns: repeat(4,1fr); border-block: 1px solid var(--line); }
+.report-kpis > div, .cash-register__totals > div { padding: 1.2rem; display: grid; gap: .4rem; border-right: 1px solid var(--line); }
+.report-kpis > div:last-child, .cash-register__totals > div:last-child { border-right: 0; }
+.report-kpis span, .cash-register__totals span { color: var(--ink-muted); font-size: .6rem; text-transform: uppercase; }
+.report-kpis strong, .cash-register__totals strong { font-size: 1.5rem; }
+.revenue-bars { height: 180px; margin-top: 2rem; display: flex; align-items: end; gap: clamp(.25rem,1vw,1rem); overflow-x: auto; border-bottom: 1px solid var(--line); }
+.revenue-bars > div { min-width: 26px; height: 100%; display: flex; flex: 1; flex-direction: column; justify-content: flex-end; align-items: center; gap: .3rem; }
+.revenue-bars span { width: min(100%,48px); min-height: 6px; background: var(--ember); }
+.revenue-bars small { color: var(--ink-muted); font-size: .52rem; }
+.report-filters { margin: 1.5rem 0; display: grid; grid-template-columns: repeat(6,minmax(100px,1fr)); gap: .6rem; }
+.report-filters label, .cash-register form label, .staff-forms label { display: grid; gap: .35rem; color: var(--ink-muted); font-size: .58rem; text-transform: uppercase; }
+.report-filters input, .report-filters select, .cash-register form input, .cash-register form textarea, .staff-forms input, .staff-forms select { min-width: 0; min-height: 42px; padding: .65rem .7rem; border: 1px solid var(--line); border-radius: 8px; background: #111; color: var(--ink); color-scheme: dark; }
+.order-history__table { overflow-x: auto; }
+.order-history__head, .order-history__row { min-width: 720px; padding: .8rem; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr .8fr 28px; gap: .7rem; align-items: center; border-bottom: 1px solid var(--line); }
+.order-history__head { color: var(--ink-muted); font-size: .58rem; text-transform: uppercase; }
+.order-history__row { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; }
+.order-history__row:hover { background: rgba(255,255,255,.035); }
+.order-history__row > span:first-child { display: grid; }
+.order-history__row small { color: var(--ink-muted); }
+.order-history__row svg { width: .9rem; }
+.report-empty { padding: 3rem; display: grid; place-items: center; gap: .5rem; color: var(--ink-muted); }
+.receipt-lines { border-block: 1px solid var(--line); }
+.receipt-lines > div { padding: .75rem 0; display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px dashed var(--line); }
+.receipt-lines span { display: grid; }
+.receipt-lines small { color: var(--ink-muted); }
+
+.cash-register { grid-template-columns: minmax(320px,.75fr) minmax(0,1.25fr); align-items: start; }
+.cash-register__current > header > svg { width: 2rem; color: var(--ember-light); }
+.cash-register__totals { grid-template-columns: repeat(3,1fr); }
+.cash-register__current form { margin-top: 1.5rem; display: grid; gap: 1rem; }
+.cash-register__current textarea { resize: vertical; }
+.cash-history__table { margin-top: 1rem; }
+.cash-history__table article { padding: .9rem 0; display: grid; grid-template-columns: 1.2fr repeat(3,1fr); gap: 1rem; border-bottom: 1px solid var(--line); }
+.cash-history__table article > span { display: grid; color: var(--ink-muted); font-size: .6rem; }
+.cash-history__table strong { color: var(--ink); font-size: .82rem; }
+.cash-history__table [data-negative="true"] strong { color: #f08d78; }
+
+.staff-list article { padding: .9rem 0; display: grid; grid-template-columns: minmax(180px,1fr) 150px auto auto; gap: .7rem; align-items: center; border-bottom: 1px solid var(--line); }
+.staff-list article[data-inactive="true"] { opacity: .55; }
+.staff-list article > span { display: grid; }
+.staff-list small, .audit-list small { color: var(--ink-muted); }
+.staff-list select { min-height: 38px; padding: .5rem; border: 1px solid var(--line); background: #111; color: var(--ink); }
+.staff-list .button { min-height: 38px; padding: .5rem .7rem; font-size: .58rem; }
+.staff-forms { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2rem; align-items: start; }
+.staff-forms .admin-editor { position: static; }
+.staff-forms .admin-editor > header { display: flex; align-items: center; gap: 1rem; }
+.staff-forms .admin-editor > header > svg { width: 1.5rem; color: var(--ember-light); }
+.audit-list article { padding: .75rem 0; display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--line); }
+.audit-list article > span { display: grid; }
+.audit-list article > span:last-child { text-align: right; }
+
+.print-report { min-height: 100svh; padding: 3rem; background: #fff; color: #111; }
+.print-report > header { display: flex; justify-content: space-between; gap: 2rem; border-bottom: 3px solid #111; }
+.print-report h1 { margin: .3rem 0; font-size: 3rem; }
+.print-report__summary { margin: 2rem 0; display: grid; grid-template-columns: repeat(4,1fr); border: 1px solid #222; }
+.print-report__summary > div { padding: 1rem; display: grid; border-right: 1px solid #222; }
+.print-report table { width: 100%; border-collapse: collapse; }
+.print-report th, .print-report td { padding: .7rem; border-bottom: 1px solid #bbb; text-align: left; }
+.print-report footer { margin-top: 2rem; color: #555; font-size: .75rem; }
 
 @media (max-width: 1180px) {
   .admin-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -232,6 +312,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .admin-item-editor { order: 2; }
   .admin-item-list { order: 1; }
   .admin-editor { position: static; }
+  .report-filters { grid-template-columns: repeat(3,1fr); }
+  .cash-register { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 850px) {
@@ -262,4 +344,19 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .admin-item-row .admin-row__order, .admin-item-row .icon-button { grid-row: 2; }
   .admin-item-tools { grid-template-columns: 1fr; }
   .restaurant-editor__form { padding: 1.2rem; }
+  .admin-payment-methods, .report-kpis, .cash-register__totals, .staff-forms, .print-report__summary { grid-template-columns: 1fr; }
+  .report-filters { grid-template-columns: repeat(2,1fr); }
+  .report-summary, .order-history, .cash-register__current, .cash-history, .staff-list, .audit-list { padding: 1rem; }
+  .report-summary > header, .order-history > header { align-items: flex-start; flex-direction: column; }
+  .cash-history__table article, .staff-list article { grid-template-columns: 1fr 1fr; }
+  .staff-list article > span { grid-column: 1 / -1; }
+}
+
+@media print {
+  body { background: #fff !important; color: #111 !important; }
+  .print-report { padding: 0; }
+  .print-report__button { display: none !important; }
+  .admin-page > :not(.admin-modal), .admin-modal__close, .receipt-modal > .button { display: none !important; }
+  .admin-modal { position: static; padding: 0; background: #fff; }
+  .receipt-modal { width: 100%; max-width: none; border: 0; box-shadow: none; background: #fff; color: #111; }
 }

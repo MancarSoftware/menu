@@ -5,27 +5,36 @@ import { createSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { loginSchema } from "@/lib/validation";
 
-const attempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_ATTEMPTS = 8;
+const BLOCK_MINUTES = 15;
 
 export async function POST(request: NextRequest) {
   try {
     if (!assertSameOrigin(request)) return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ?? "local";
-    const now = Date.now();
-    const current = attempts.get(ip);
-    if (current && current.resetAt > now && current.count >= 8) return NextResponse.json({ error: "Demasiados intentos. Espera unos minutos." }, { status: 429 });
-    if (!current || current.resetAt <= now) attempts.set(ip, { count: 0, resetAt: now + 15 * 60 * 1000 });
-
     const input = loginSchema.parse(await request.json());
-    const user = await db.adminUser.findUnique({ where: { email: input.email.toLowerCase() } });
+    const email = input.email.toLowerCase();
+    const throttleKey = `${ip}:${email}`;
+    const throttle = await db.loginThrottle.findUnique({ where: { key: throttleKey } });
+    if (throttle?.blockedUntil && throttle.blockedUntil > new Date()) return NextResponse.json({ error: "Demasiados intentos. Espera unos minutos." }, { status: 429 });
+    const user = await db.adminUser.findUnique({ where: { email } });
     const valid = user ? await compare(input.password, user.passwordHash) : false;
-    if (!user || !valid) {
-      const entry = attempts.get(ip)!;
-      entry.count += 1;
+    if (!user || !user.isActive || !valid) {
+      const windowExpired = !throttle || throttle.lastAttemptAt.getTime() < Date.now() - BLOCK_MINUTES * 60_000 || Boolean(throttle.blockedUntil && throttle.blockedUntil <= new Date());
+      const failedAttempts = (windowExpired ? 0 : throttle.failedAttempts) + 1;
+      await db.loginThrottle.upsert({
+        where: { key: throttleKey },
+        create: { key: throttleKey, failedAttempts, blockedUntil: failedAttempts >= MAX_ATTEMPTS ? new Date(Date.now() + BLOCK_MINUTES * 60_000) : null },
+        update: { failedAttempts, blockedUntil: failedAttempts >= MAX_ATTEMPTS ? new Date(Date.now() + BLOCK_MINUTES * 60_000) : null, lastAttemptAt: new Date() },
+      });
       return NextResponse.json({ error: "Correo o contraseña incorrectos." }, { status: 401 });
     }
-    attempts.delete(ip);
-    await Promise.all([createSession(user), db.adminUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })]);
-    return NextResponse.json({ ok: true });
+    await Promise.all([
+      createSession(user),
+      db.adminUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }),
+      db.loginThrottle.deleteMany({ where: { key: throttleKey } }),
+      db.auditLog.create({ data: { actorUserId: user.id, actorName: user.email, action: "AUTH_LOGIN", entityType: "AdminUser", entityId: user.id } }),
+    ]);
+    return NextResponse.json({ ok: true, mustChangePassword: user.mustChangePassword });
   } catch (error) { return apiError(error); }
 }

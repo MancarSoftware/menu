@@ -23,7 +23,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
     if (["PAID", "CANCELLED"].includes(order.status)) return;
     const interval = window.setInterval(async () => {
       try {
-        const response = await fetch(`/api/dine-in/orders/${order.publicId}`, { cache: "no-store" });
+        const response = await fetch(order.mode === "DINE_IN" ? `/api/dine-in/orders/${order.publicId}` : `/api/orders/${order.publicId}`, { cache: "no-store" });
         const body = await response.json() as { order?: OrderView };
         if (response.ok && body.order) {
           setOrder(body.order);
@@ -36,10 +36,10 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
       }
     }, 8000);
     return () => window.clearInterval(interval);
-  }, [order.publicId, order.status]);
+  }, [order.mode, order.publicId, order.status]);
 
   useEffect(() => {
-    if (order.status !== "PAID") return;
+    if (order.status !== "PAID" || order.mode !== "DINE_IN") return;
     let cancelled = false;
     let inFlight = false;
     let ended = false;
@@ -72,7 +72,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [order.status, router]);
+  }, [order.mode, order.status, router]);
 
   const currentIndex = steps.findIndex((step) => step.status === order.status);
   const isCancelled = order.status === "CANCELLED";
@@ -80,9 +80,9 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
   return (
     <main id="contenido" className="fast-page order-status-page">
       <header className="order-status__hero">
-        <p className="eyebrow">Pedido #{order.orderNumber} · Mesa {order.table?.number}</p>
+        <p className="eyebrow">Pedido #{order.orderNumber}{order.mode === "DINE_IN" ? ` · Mesa ${order.table?.number}` : order.mode === "DELIVERY" ? " · Delivery" : " · Retiro"}</p>
         <h1>{isCancelled ? "Pedido cancelado" : order.status === "PAID" ? "¡Todo listo!" : "Tu pedido está en marcha"}</h1>
-        <p>{isCancelled ? "Consulta al personal si necesitas hacer un nuevo pedido." : order.status === "PAID" ? "Pago registrado. Estamos cerrando la sesión de tu mesa." : "La cocina recibió tu orden. Esta pantalla se actualiza automáticamente."}</p>
+        <p>{isCancelled ? "Consulta al personal si necesitas hacer un nuevo pedido." : order.status === "PAID" ? order.mode === "DINE_IN" ? "Pago registrado. Estamos cerrando la sesión de tu mesa." : "Pago registrado. Gracias por tu pedido." : "La cocina recibió tu orden. Esta pantalla se actualiza automáticamente."}</p>
       </header>
 
       {!isCancelled && <ol className="order-progress" aria-label="Estado del pedido">

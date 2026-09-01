@@ -13,7 +13,7 @@ export function TableManager({ initialTables }: { initialTables: DiningTableView
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => setTables(initialTables), [initialTables]);
+  useEffect(() => { const timeout = window.setTimeout(() => setTables(initialTables), 0); return () => window.clearTimeout(timeout); }, [initialTables]);
   useEffect(() => {
     let stopped = false;
     async function refreshTables() {

@@ -24,6 +24,6 @@ export function apiError(error: unknown) {
     if (error.code === "P2003") return NextResponse.json({ error: "No se puede eliminar porque hay elementos relacionados." }, { status: 409 });
     if (error.code === "P2025") return NextResponse.json({ error: "El registro ya no existe." }, { status: 404 });
   }
-  console.error(error);
+  console.error(JSON.stringify({ level: "error", event: "api_error", message: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined, timestamp: new Date().toISOString() }));
   return NextResponse.json({ error: "No pudimos completar la operación. Inténtalo de nuevo." }, { status: 500 });
 }

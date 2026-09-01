@@ -3,20 +3,23 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Check, ChefHat, ChevronRight, CircleOff, Edit3, ExternalLink, ImagePlus, LayoutList, LogOut, MapPinned, Plus, QrCode, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
-import type { AdminMetricsView, DiningTableView, MenuCategoryView, MenuItemView, OrderView, RestaurantView } from "@/lib/domain";
+import { ArrowDown, ArrowUp, Banknote, BarChart3, Check, ChefHat, ChevronRight, CircleOff, Edit3, ExternalLink, ImagePlus, LayoutList, LogOut, MapPinned, Plus, QrCode, Search, Trash2, UserRoundCog, UtensilsCrossed, X } from "lucide-react";
+import type { AdminMetricsView, DiningTableView, MenuCategoryView, MenuItemView, OrderView, RestaurantView, StaffRole } from "@/lib/domain";
 import { getBusinessDate } from "@/lib/business-date";
 import { formatPrice, slugify } from "@/lib/format";
 import { requestJson, SessionExpiredError } from "./admin-api";
 import { KitchenBoard } from "./kitchen-board";
 import { TableManager } from "./table-manager";
+import { ReportsPanel } from "./reports-panel";
+import { CashRegister } from "./cash-register";
+import { StaffManager } from "./staff-manager";
 
-type Tab = "overview" | "orders" | "tables" | "categories" | "items" | "restaurant";
+type Tab = "overview" | "orders" | "reports" | "cash" | "tables" | "categories" | "items" | "restaurant" | "staff";
 type Notice = { kind: "success" | "error"; message: string } | null;
 
-export function AdminDashboard({ categories, restaurant, tables, orders, initialMetrics, userEmail }: { categories: MenuCategoryView[]; restaurant: RestaurantView; tables: DiningTableView[]; orders: OrderView[]; initialMetrics: AdminMetricsView; userEmail: string }) {
+export function AdminDashboard({ categories, restaurant, tables, orders, initialMetrics, userEmail, role }: { categories: MenuCategoryView[]; restaurant: RestaurantView; tables: DiningTableView[]; orders: OrderView[]; initialMetrics: AdminMetricsView; userEmail: string; role: StaffRole }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(["ADMIN", "CASHIER"].includes(role) ? "overview" : "orders");
   const [notice, setNotice] = useState<Notice>(null);
   const [metrics, setMetrics] = useState(initialMetrics);
   const [revenueDate, setRevenueDate] = useState(initialMetrics.date);
@@ -33,9 +36,10 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   }, [revenueDate, router]);
 
   useEffect(() => {
+    if (!["ADMIN", "CASHIER"].includes(role)) return;
     const interval = window.setInterval(refreshMetrics, 10000);
     return () => window.clearInterval(interval);
-  }, [refreshMetrics]);
+  }, [refreshMetrics, role]);
 
   useEffect(() => {
     if (!notice) return;
@@ -56,26 +60,32 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
       <aside className="admin-sidebar">
         <div><p className="eyebrow">El Bueno</p><strong>Panel del menú</strong></div>
         <nav aria-label="Secciones de administración">
-          <button data-active={tab === "overview"} onClick={() => setTab("overview")}><LayoutList aria-hidden="true" />Resumen</button>
+          {["ADMIN", "CASHIER"].includes(role) && <button data-active={tab === "overview"} onClick={() => setTab("overview")}><LayoutList aria-hidden="true" />Resumen</button>}
           <button data-active={tab === "orders"} onClick={() => setTab("orders")}><ChefHat aria-hidden="true" />Cocina</button>
-          <button data-active={tab === "tables"} onClick={() => setTab("tables")}><QrCode aria-hidden="true" />Mesas y QR</button>
-          <button data-active={tab === "categories"} onClick={() => setTab("categories")}><ChevronRight aria-hidden="true" />Categorías</button>
-          <button data-active={tab === "items"} onClick={() => setTab("items")}><UtensilsCrossed aria-hidden="true" />Productos</button>
-          <button data-active={tab === "restaurant"} onClick={() => setTab("restaurant")}><MapPinned aria-hidden="true" />Restaurante</button>
+          {["ADMIN", "CASHIER"].includes(role) && <button data-active={tab === "reports"} onClick={() => setTab("reports")}><BarChart3 aria-hidden="true" />Ventas</button>}
+          {["ADMIN", "CASHIER"].includes(role) && <button data-active={tab === "cash"} onClick={() => setTab("cash")}><Banknote aria-hidden="true" />Caja</button>}
+          {role === "ADMIN" && <button data-active={tab === "tables"} onClick={() => setTab("tables")}><QrCode aria-hidden="true" />Mesas y QR</button>}
+          {role === "ADMIN" && <button data-active={tab === "categories"} onClick={() => setTab("categories")}><ChevronRight aria-hidden="true" />Categorías</button>}
+          {role === "ADMIN" && <button data-active={tab === "items"} onClick={() => setTab("items")}><UtensilsCrossed aria-hidden="true" />Productos</button>}
+          {role === "ADMIN" && <button data-active={tab === "restaurant"} onClick={() => setTab("restaurant")}><MapPinned aria-hidden="true" />Restaurante</button>}
+          <button data-active={tab === "staff"} onClick={() => setTab("staff")}><UserRoundCog aria-hidden="true" />{role === "ADMIN" ? "Equipo" : "Mi acceso"}</button>
         </nav>
         <div className="admin-sidebar__footer"><span>{userEmail}</span><button type="button" onClick={logout}><LogOut aria-hidden="true" />Cerrar sesión</button></div>
       </aside>
 
       <section className="admin-workspace">
-        <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "orders" ? "Cocina" : tab === "tables" ? "Mesas" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
+        <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "orders" ? "Cocina" : tab === "reports" ? "Ventas" : tab === "cash" ? "Caja" : tab === "tables" ? "Mesas" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : tab === "staff" ? role === "ADMIN" ? "Equipo y seguridad" : "Mi acceso" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
         {notice && <div className="admin-notice" data-kind={notice.kind} role="status">{notice.kind === "success" ? <Check aria-hidden="true" /> : <CircleOff aria-hidden="true" />}{notice.message}<button onClick={() => setNotice(null)} aria-label="Cerrar aviso"><X aria-hidden="true" /></button></div>}
 
         {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} metrics={metrics} revenueDate={revenueDate} onRevenueDateChange={(date) => { setRevenueDate(date); void refreshMetrics(date); }} onNavigate={setTab} />}
-        {tab === "orders" && <KitchenBoard initialOrders={orders} onPaymentRecorded={() => { void refreshMetrics(); }} />}
+        {tab === "orders" && <KitchenBoard initialOrders={orders} role={role} onPaymentRecorded={() => { void refreshMetrics(); }} />}
+        {tab === "reports" && <ReportsPanel />}
+        {tab === "cash" && <CashRegister />}
         {tab === "tables" && <TableManager initialTables={tables} />}
         {tab === "categories" && <CategoryManager categories={categories} run={run} />}
         {tab === "items" && <ItemManager categories={categories} run={run} />}
         {tab === "restaurant" && <RestaurantManager restaurant={restaurant} run={run} />}
+        {tab === "staff" && <StaffManager canManage={role === "ADMIN"} />}
       </section>
     </div>
   );

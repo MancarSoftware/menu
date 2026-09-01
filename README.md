@@ -1,6 +1,6 @@
 # El Bueno
 
-A mobile-first fast-food menu inspired by the supplied Figma model. Customers can browse burgers, pizzas, combos, and drinks; search or filter products; inspect details; build a persistent cart; and send a complete delivery order through WhatsApp. A protected admin area manages the business profile, categories, products, availability, ordering, and images.
+A mobile-first fast-food ordering system for one restaurant per deployment. Customers can order at a table by QR, request delivery, or choose pickup. Staff receive every channel in one kitchen board, manage payments and cash shifts, and review auditable sales reports.
 
 ## Stack
 
@@ -23,7 +23,11 @@ npm run dev
 
 Before migrating or seeding, configure `DATABASE_URL`, then replace the example session secret and administrator password in `.env`. The public site runs at `http://127.0.0.1:3000`; the sign-in screen is at `/admin/login`.
 
-Use `npm run db:migrate:deploy` in hosted environments. Keep all database URLs and credentials in local or hosting-platform environment variables; never commit `.env`.
+Hosted builds run `prisma migrate deploy` automatically before `next build`. Use `npm run build:local` for a local production compilation that must not apply migrations. Keep all database URLs and credentials in local or hosting-platform environment variables; never commit `.env`.
+
+## Deployment model
+
+This release is intentionally **single-tenant**: each client receives an isolated Vercel project and Neon database. There is no tenant table, shared client data, subscription system, or SaaS billing. This is the safest and simplest operating model for the current small- and medium-outlet audience. See [OPERATIONS.md](./OPERATIONS.md) for staging, backup, restore, monitoring, and client-launch procedures.
 
 ## Verification
 
@@ -32,7 +36,7 @@ npm run typecheck
 npm run lint
 npm run test
 npm run test:e2e
-npm run build
+npm run build:local
 ```
 
 ## Images

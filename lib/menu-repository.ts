@@ -64,14 +64,12 @@ export async function getActiveOrders() {
 
 export async function getAdminMetrics(date = getBusinessDate()) {
   const { start, end } = getBusinessDateRange(date);
-  const paidOrders = await db.customerOrder.aggregate({
-    where: { paymentStatus: "PAID", paidAt: { gte: start, lt: end } },
-    _sum: { totalCents: true },
-    _count: { _all: true },
-  });
+  const events = await db.paymentEvent.groupBy({ by: ["type"], where: { createdAt: { gte: start, lt: end } }, _sum: { amountCents: true }, _count: { _all: true } });
+  const payments = events.find((event) => event.type === "PAYMENT");
+  const refunds = events.find((event) => event.type === "REFUND");
   return {
     date,
-    revenueCents: paidOrders._sum.totalCents ?? 0,
-    paidOrderCount: paidOrders._count._all,
+    revenueCents: (payments?._sum.amountCents ?? 0) - (refunds?._sum.amountCents ?? 0),
+    paidOrderCount: payments?._count._all ?? 0,
   };
 }

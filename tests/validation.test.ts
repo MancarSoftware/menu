@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categorySchema, menuItemSchema, restaurantSchema } from "@/lib/validation";
+import { categorySchema, menuItemSchema, passwordSchema, publicOrderSchema, restaurantSchema } from "@/lib/validation";
 
 describe("runtime validation", () => {
   it("rejects invalid category slugs", () => {
@@ -10,7 +10,15 @@ describe("runtime validation", () => {
     expect(result.success).toBe(false);
   });
   it("accepts a complete restaurant contract", () => {
-    const result = restaurantSchema.safeParse({ name: "El Bueno", tagline: "Rápido, fresco y sabroso", description: "Hamburguesas, pizzas y combos preparados al momento.", address: "Calle Duarte 123", phone: "+1 809-555-0100", whatsapp: "18095550100", email: "hola@example.com", openingHours: [{ days: "Lunes a domingo", hours: "11:00 — 23:00" }], socialLinks: { instagram: "https://instagram.com" } });
+    const result = restaurantSchema.safeParse({ name: "El Bueno", tagline: "Rápido, fresco y sabroso", description: "Hamburguesas, pizzas y combos preparados al momento.", address: "Centro Histórico", city: "Quito", countryCode: "EC", latitude: -0.220164, longitude: -78.512327, phone: "+593 2 255 5555", whatsapp: "593995555555", email: "hola@example.com", openingHours: [{ days: "Lunes a domingo", hours: "11:00 — 23:00" }], socialLinks: { instagram: "https://instagram.com" } });
     expect(result.success).toBe(true);
+  });
+  it("requires customer contact details for delivery and pickup orders", () => {
+    const result = publicOrderSchema.safeParse({ clientRequestId: crypto.randomUUID(), mode: "DELIVERY", customerName: "Ana", customerPhone: "0999999999", deliveryAddress: "", notes: "", items: [{ productId: "burger", quantity: 1, customizationKey: "standard" }] });
+    expect(result.success).toBe(false);
+  });
+  it("requires a strong staff password", () => {
+    expect(passwordSchema.safeParse("weak-password").success).toBe(false);
+    expect(passwordSchema.safeParse("SecureAccess2026").success).toBe(true);
   });
 });

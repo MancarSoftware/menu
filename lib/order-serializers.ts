@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import type { DiningTableStatus, DiningTableView, OrderStatus, OrderView } from "./domain";
+import type { DiningTableStatus, DiningTableView, OrderMode, OrderStatus, OrderView, PaymentMethod } from "./domain";
 import { parseArray } from "./serializers";
 
 export const orderInclude = {
@@ -19,13 +19,18 @@ export function toOrderView(order: OrderWithDetails): OrderView {
     orderNumber: order.dailyNumber,
     businessDate: order.businessDate,
     publicId: order.publicId,
-    mode: "DINE_IN",
+    mode: order.mode as OrderMode,
     status: order.status as OrderStatus,
-    paymentStatus: order.paymentStatus as "PENDING" | "PAID",
-    paymentMethod: order.paymentMethod,
+    paymentStatus: order.paymentStatus as OrderView["paymentStatus"],
+    paymentMethod: order.paymentMethod as PaymentMethod | null,
     subtotalCents: order.subtotalCents,
     totalCents: order.totalCents,
     notes: order.notes,
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    deliveryAddress: order.deliveryAddress,
+    acknowledgedAt: order.acknowledgedAt?.toISOString() ?? null,
+    version: order.version,
     createdAt: order.createdAt.toISOString(),
     table: order.diningTable ? { id: order.diningTable.id, number: order.diningTable.number, name: order.diningTable.name } : null,
     items: order.items.map((item) => ({

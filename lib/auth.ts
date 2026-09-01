@@ -2,9 +2,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import { getTokenSecret } from "./token-secret";
+import type { StaffRole } from "./domain";
 
 const COOKIE_NAME = "el_bueno_admin_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
+const STAFF_ROLES: StaffRole[] = ["ADMIN", "CASHIER", "WAITER", "KITCHEN"];
 
 export async function createSession(user: { id: string; email: string; role: string }) {
   const token = await new SignJWT({ email: user.email, role: user.role })
@@ -33,8 +35,9 @@ export async function getSession() {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getTokenSecret());
-    if (!payload.sub || payload.role !== "ADMIN") return null;
-    return { id: payload.sub, email: String(payload.email), role: String(payload.role) };
+    const role = String(payload.role) as StaffRole;
+    if (!payload.sub || !STAFF_ROLES.includes(role)) return null;
+    return { id: payload.sub, email: String(payload.email), role };
   } catch {
     return null;
   }
@@ -48,6 +51,12 @@ export async function requireAdminPage() {
 
 export async function requireAdminApi() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session || session.role !== "ADMIN") return null;
+  return session;
+}
+
+export async function requireRoleApi(roles: StaffRole[]) {
+  const session = await getSession();
+  if (!session || !roles.includes(session.role)) return null;
   return session;
 }

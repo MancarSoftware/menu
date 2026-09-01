@@ -41,26 +41,26 @@ model MenuCategory {
 }
 
 model MenuItem {
-  id                    String       @id @default(cuid())
-  name                  String
-  slug                  String       @unique
-  shortDescription      String
-  description           String
-  priceCents             Int
-  imageUrl               String
-  isAvailable            Boolean      @default(true)
-  isFeatured             Boolean      @default(false)
-  isChefRecommendation   Boolean      @default(false)
-  displayOrder           Int          @default(0)
-  dietaryTags            String       @default("[]")
-  ingredients            String       @default("[]")
-  allergens              String       @default("[]")
-  spicyLevel             Int?
-  categoryId             String
-  category               MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  orderItems             OrderItem[]
-  updatedAt               DateTime      @updatedAt
-  createdAt               DateTime      @default(now())
+  id                   String       @id @default(cuid())
+  name                 String
+  slug                 String       @unique
+  shortDescription     String
+  description          String
+  priceCents           Int
+  imageUrl             String
+  isAvailable          Boolean      @default(true)
+  isFeatured           Boolean      @default(false)
+  isChefRecommendation Boolean      @default(false)
+  displayOrder         Int          @default(0)
+  dietaryTags          String       @default("[]")
+  ingredients          String       @default("[]")
+  allergens            String       @default("[]")
+  spicyLevel           Int?
+  categoryId           String
+  category             MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems           OrderItem[]
+  updatedAt            DateTime     @updatedAt
+  createdAt            DateTime     @default(now())
 
   @@index([categoryId, isAvailable, displayOrder])
   @@index([isFeatured, isAvailable])
@@ -82,31 +82,40 @@ model DiningTable {
 }
 
 model CustomerOrder {
-  id                Int                  @id @default(autoincrement())
-  publicId          String               @unique @default(cuid())
-  clientRequestId   String               @unique
-  dailyNumber       Int
-  businessDate      String               @db.VarChar(10)
-  mode              String               @default("DINE_IN")
-  status            String               @default("RECEIVED")
-  paymentStatus     String               @default("PENDING")
-  paymentMethod     String?
-  paidAt            DateTime?
-  subtotalCents     Int
-  serviceFeeCents   Int                  @default(0)
-  totalCents        Int
-  notes             String               @default("")
-  diningTableId     String?
-  diningTable       DiningTable?         @relation(fields: [diningTableId], references: [id], onDelete: SetNull)
-  items             OrderItem[]
-  statusHistory     OrderStatusHistory[]
-  updatedAt         DateTime              @updatedAt
-  createdAt         DateTime              @default(now())
+  id              Int                  @id @default(autoincrement())
+  publicId        String               @unique @default(cuid())
+  clientRequestId String               @unique
+  dailyNumber     Int
+  businessDate    String               @db.VarChar(10)
+  mode            String               @default("DINE_IN")
+  status          String               @default("RECEIVED")
+  paymentStatus   String               @default("PENDING")
+  paymentMethod   String?
+  paidAt          DateTime?
+  customerName    String?
+  customerPhone   String?
+  deliveryAddress String?
+  acknowledgedAt  DateTime?
+  acknowledgedBy  String?
+  version         Int                  @default(1)
+  subtotalCents   Int
+  serviceFeeCents Int                  @default(0)
+  totalCents      Int
+  notes           String               @default("")
+  diningTableId   String?
+  diningTable     DiningTable?         @relation(fields: [diningTableId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+  statusHistory   OrderStatusHistory[]
+  paymentEvents   PaymentEvent[]
+  updatedAt       DateTime             @updatedAt
+  createdAt       DateTime             @default(now())
 
+  @@unique([businessDate, dailyNumber])
   @@index([status, createdAt])
   @@index([diningTableId, status])
   @@index([paymentStatus, paidAt])
-  @@unique([businessDate, dailyNumber])
+  @@index([mode, createdAt])
+  @@index([businessDate, paymentMethod])
 }
 
 model DailyOrderCounter {
@@ -117,19 +126,19 @@ model DailyOrderCounter {
 }
 
 model OrderItem {
-  id                 String        @id @default(cuid())
-  orderId            Int
-  order              CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId          String?
-  product            MenuItem?     @relation(fields: [productId], references: [id], onDelete: SetNull)
-  productName        String
-  quantity           Int
-  basePriceCents     Int
-  extraPriceCents    Int           @default(0)
-  unitPriceCents     Int
-  lineTotalCents     Int
-  customization     String         @default("[]")
-  createdAt          DateTime       @default(now())
+  id              String        @id @default(cuid())
+  orderId         Int
+  order           CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         MenuItem?     @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName     String
+  quantity        Int
+  basePriceCents  Int
+  extraPriceCents Int           @default(0)
+  unitPriceCents  Int
+  lineTotalCents  Int
+  customization   String        @default("[]")
+  createdAt       DateTime      @default(now())
 
   @@index([orderId])
   @@index([productId])
@@ -140,19 +149,87 @@ model OrderStatusHistory {
   orderId   Int
   order     CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   status    String
-  actor     String         @default("SYSTEM")
-  createdAt DateTime       @default(now())
+  actor     String        @default("SYSTEM")
+  createdAt DateTime      @default(now())
 
   @@index([orderId, createdAt])
 }
 
+model PaymentEvent {
+  id          String             @id @default(cuid())
+  orderId     Int
+  order       CustomerOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shiftId     String?
+  shift       CashRegisterShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  type        String
+  method      String
+  amountCents Int
+  reason      String             @default("")
+  actorUserId String?
+  actorName   String
+  createdAt   DateTime           @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([shiftId, method, createdAt])
+  @@index([type, createdAt])
+}
+
+model CashRegisterShift {
+  id                  String         @id @default(cuid())
+  businessDate        String         @db.VarChar(10)
+  status              String         @default("OPEN")
+  openingBalanceCents Int
+  expectedCashCents   Int?
+  actualCashCents     Int?
+  discrepancyCents    Int?
+  notes               String         @default("")
+  openedByUserId      String?
+  openedByName        String
+  closedByUserId      String?
+  closedByName        String?
+  openedAt            DateTime       @default(now())
+  closedAt            DateTime?
+  paymentEvents       PaymentEvent[]
+  updatedAt           DateTime       @updatedAt
+  createdAt           DateTime       @default(now())
+
+  @@index([businessDate, status])
+  @@index([status, openedAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorName   String
+  action      String
+  entityType  String
+  entityId    String
+  details     String   @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+}
+
+model LoginThrottle {
+  key            String    @id
+  failedAttempts Int       @default(0)
+  blockedUntil   DateTime?
+  lastAttemptAt  DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         String   @default("ADMIN")
-  lastLoginAt  DateTime?
-  updatedAt    DateTime @updatedAt
-  createdAt    DateTime @default(now())
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  role               String    @default("ADMIN")
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  passwordChangedAt  DateTime?
+  lastLoginAt        DateTime?
+  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime  @default(now())
 }

@@ -59,6 +59,8 @@ export const diningTableSchema = z.object({
 
 export const diningTableStatusSchema = z.enum(["AVAILABLE", "OCCUPIED", "CLEANING", "INACTIVE"]);
 export const orderStatusSchema = z.enum(["RECEIVED", "PREPARING", "READY", "SERVED", "PAID", "CANCELLED"]);
+export const paymentMethodSchema = z.enum(["CASH", "CARD", "TRANSFER"]);
+export const staffRoleSchema = z.enum(["ADMIN", "CASHIER", "WAITER", "KITCHEN"]);
 
 export const dineInOrderSchema = z.object({
   clientRequestId: z.uuid(),
@@ -69,3 +71,18 @@ export const dineInOrderSchema = z.object({
     customizationKey: z.string().max(1000).default("standard"),
   })).min(1).max(40),
 });
+
+export const publicOrderSchema = dineInOrderSchema.extend({
+  mode: z.enum(["DELIVERY", "PICKUP"]),
+  customerName: z.string().trim().min(2).max(100),
+  customerPhone: z.string().trim().regex(/^\+?[0-9\s-]{7,20}$/),
+  deliveryAddress: z.string().trim().max(240).optional().default(""),
+}).refine((value) => value.mode !== "DELIVERY" || value.deliveryAddress.length >= 8, {
+  message: "Ingresa una dirección de entrega válida.",
+  path: ["deliveryAddress"],
+});
+
+export const passwordSchema = z.string().min(12).max(200)
+  .regex(/[A-Z]/, "Incluye una mayúscula.")
+  .regex(/[a-z]/, "Incluye una minúscula.")
+  .regex(/[0-9]/, "Incluye un número.");

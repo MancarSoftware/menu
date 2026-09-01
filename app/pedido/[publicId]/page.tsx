@@ -9,10 +9,12 @@ export const metadata: Metadata = { title: "Estado del pedido", robots: { index:
 export const dynamic = "force-dynamic";
 
 export default async function OrderPage({ params }: { params: Promise<{ publicId: string }> }) {
-  const table = await getDiningTableSession();
-  if (!table) redirect("/menu");
   const { publicId } = await params;
-  const order = await db.customerOrder.findFirst({ where: { publicId, diningTableId: table.id }, include: orderInclude });
+  const order = await db.customerOrder.findUnique({ where: { publicId }, include: orderInclude });
   if (!order) notFound();
+  if (order.mode === "DINE_IN") {
+    const table = await getDiningTableSession();
+    if (!table || order.diningTableId !== table.id) redirect("/menu");
+  }
   return <OrderStatusView initialOrder={toOrderView(order)} />;
 }
