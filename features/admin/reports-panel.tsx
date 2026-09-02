@@ -9,6 +9,9 @@ import { requestJson } from "./admin-api";
 import { ReceiptDocument, type ReceiptView } from "@/features/orders/receipt-document";
 import { useBusinessToday } from "./use-business-today";
 import { useLiveRefresh } from "./use-live-refresh";
+import { paymentMethodLabels } from "@/lib/payment-labels";
+
+const orderStatusLabels: Record<OrderView["status"], string> = { RECEIVED: "Recibido", PREPARING: "En cocina", READY: "Listo", SERVED: "Entregado", PAID: "Pagado", CANCELLED: "Cancelado" };
 
 function daysAgo(days: number) { const date = new Date(`${getBusinessDate()}T12:00:00-05:00`); date.setDate(date.getDate() - days); return date.toISOString().slice(0, 10); }
 function weekStart() { const date = new Date(`${getBusinessDate()}T12:00:00-05:00`); const day = date.getDay() || 7; date.setDate(date.getDate() - day + 1); return date.toISOString().slice(0, 10); }
@@ -68,7 +71,18 @@ export function ReportsPanel() {
     <section className="order-history"><header><div><p className="eyebrow">Hasta 500 resultados</p><h2>Historial de pedidos</h2></div><div className="report-actions"><a className="button button--line" href={`/api/admin/reports/orders?${query}&format=csv`}><Download />CSV</a><a className="button button--line" href={`/admin/reportes/imprimir?from=${filters.from}&to=${filters.to}`} target="_blank"><Printer />PDF / imprimir</a></div></header>
       <div className="report-filters"><label>Desde<input type="date" value={filters.from} max={filters.to} onChange={(event) => setFilters({ ...filters, from: event.target.value })} /></label><label>Hasta<input type="date" value={filters.to} min={filters.from} max={today} onChange={(event) => setFilters({ ...filters, to: event.target.value })} /></label><label>Canal<select value={filters.mode} onChange={(event) => setFilters({ ...filters, mode: event.target.value })}><option value="">Todos</option><option value="DINE_IN">Mesa</option><option value="DELIVERY">Delivery</option><option value="PICKUP">Retiro</option></select></label><label>Estado<select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}><option value="">Todos</option>{["RECEIVED", "PREPARING", "READY", "SERVED", "PAID", "CANCELLED"].map((value) => <option key={value}>{value}</option>)}</select></label><label>Pago<select value={filters.paymentMethod} onChange={(event) => setFilters({ ...filters, paymentMethod: event.target.value })}><option value="">Todos</option><option value="CASH">Efectivo</option><option value="CARD">Tarjeta</option><option value="TRANSFER">Transferencia</option></select></label><label>Mesa<input type="number" min="1" value={filters.table} onChange={(event) => setFilters({ ...filters, table: event.target.value })} /></label></div>
       {message && <p className="admin-inline-message">{message}</p>}
-      <div className="order-history__table"><div className="order-history__head"><span>Pedido</span><span>Canal</span><span>Estado</span><span>Pago</span><span>Total</span><span /></div>{orders.map((order) => <button className="order-history__row" key={order.id} onClick={() => openReceipt(order)}><span><strong>#{order.orderNumber}</strong><small>{order.businessDate}</small></span><span>{order.mode === "DINE_IN" ? `Mesa ${order.table?.number}` : order.mode === "DELIVERY" ? "Delivery" : "Retiro"}</span><span>{order.status}</span><span>{order.paymentMethod ?? "Pendiente"}</span><strong>{formatPrice(order.totalCents)}</strong><FileText /></button>)}{!orders.length && <p className="report-empty"><Search />No hay pedidos con esos filtros.</p>}</div>
+      <div className="order-history__table">
+        <div className="order-history__head"><span>Pedido</span><span>Canal</span><span>Estado</span><span>Pago</span><span>Total</span><span /></div>
+        {orders.map((order) => <button className="order-history__row" key={order.id} onClick={() => openReceipt(order)}>
+          <span className="order-history__reference"><strong>#{order.orderNumber}</strong><small>{order.businessDate}</small></span>
+          <span className="order-history__channel"><span className="order-history__label">Canal</span>{order.mode === "DINE_IN" ? `Mesa ${order.table?.number}` : order.mode === "DELIVERY" ? "Delivery" : "Retiro"}</span>
+          <span className="order-history__status"><span className="order-history__label">Estado</span>{orderStatusLabels[order.status]}</span>
+          <span className="order-history__payment"><span className="order-history__label">Pago</span>{order.paymentMethod ? paymentMethodLabels[order.paymentMethod] : "Pendiente"}</span>
+          <strong className="order-history__total"><span className="order-history__label">Total</span>{formatPrice(order.totalCents)}</strong>
+          <span className="order-history__receipt"><span className="order-history__label">Ver recibo</span><FileText aria-hidden="true" /></span>
+        </button>)}
+        {!orders.length && <p className="report-empty"><Search />No hay pedidos con esos filtros.</p>}
+      </div>
     </section>
 
     {receipt && <div className="admin-modal" role="dialog" aria-modal="true" aria-label="Comprobante de pedido"><article className="admin-modal__panel receipt-modal"><button className="admin-modal__close" onClick={() => setReceipt(null)} aria-label="Cerrar"><X /></button><ReceiptDocument receipt={receipt} /><div className="report-actions">{receipt.paymentEvents.some((event) => event.type === "PAYMENT") && <><button className="button button--line" onClick={refundPayment}>Reembolsar</button><button className="button button--line" onClick={changePaymentMethod}>Corregir método</button></>}<a className="button button--solid" href={`/admin/pedidos/${receipt.order.id}/comprobante`} target="_blank" rel="noopener noreferrer"><Printer />Imprimir comprobante</a></div></article></div>}

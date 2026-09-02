@@ -32,6 +32,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   const [tab, setTab] = useState<Tab>(["ADMIN", "CASHIER"].includes(role) ? "overview" : "orders");
   const [sectionRestored, setSectionRestored] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [metrics, setMetrics] = useState(initialMetrics);
   const today = useBusinessToday();
   const [selectedRevenueDate, setSelectedRevenueDate] = useState<string | null>(null);
@@ -85,9 +86,16 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   }
 
   async function logout() {
-    await requestJson("/api/auth/logout", "POST");
-    try { window.sessionStorage.removeItem(tabStorageKey); } catch { /* Storage may be blocked. */ }
-    router.push("/admin/login"); router.refresh();
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await requestJson("/api/auth/logout", "POST");
+      try { window.sessionStorage.removeItem(tabStorageKey); } catch { /* Storage may be blocked. */ }
+      router.replace("/admin/login"); router.refresh();
+    } catch (error) {
+      setNotice({ kind: "error", message: error instanceof Error ? error.message : "No pudimos cerrar la sesión. Inténtalo otra vez." });
+      setLoggingOut(false);
+    }
   }
 
   return (
@@ -106,7 +114,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
           {role === "ADMIN" && <button data-active={tab === "restaurant"} onClick={() => setTab("restaurant")}><MapPinned aria-hidden="true" />Restaurante</button>}
           <button data-active={tab === "staff"} onClick={() => setTab("staff")}><UserRoundCog aria-hidden="true" />{role === "ADMIN" ? "Equipo" : "Mi acceso"}</button>
         </nav>
-        <div className="admin-sidebar__footer"><span>{userEmail}</span><button type="button" onClick={logout}><LogOut aria-hidden="true" />Cerrar sesión</button></div>
+        <div className="admin-sidebar__footer"><span>{userEmail}</span><button type="button" disabled={loggingOut} onClick={() => void logout()}><LogOut aria-hidden="true" />{loggingOut ? "Saliendo…" : "Cerrar sesión"}</button></div>
       </aside>
 
       <section className="admin-workspace">
