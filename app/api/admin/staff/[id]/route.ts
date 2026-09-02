@@ -6,7 +6,7 @@ import { requireRoleApi } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { passwordSchema, staffRoleSchema } from "@/lib/validation";
 
-const schema = z.object({ role: staffRoleSchema.optional(), isActive: z.boolean().optional(), password: passwordSchema.optional(), canCollectCash: z.boolean().optional() }).refine((value) => Object.keys(value).length > 0);
+const schema = z.object({ role: staffRoleSchema.optional(), isActive: z.boolean().optional(), password: passwordSchema.optional(), canCollectCash: z.boolean().optional(), canCollectCard: z.boolean().optional(), canCollectTransfer: z.boolean().optional() }).refine((value) => Object.keys(value).length > 0);
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -24,11 +24,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         const assigned = await tx.customerOrder.count({ where: { assignedDriverId: id, status: { notIn: ["PAID", "CANCELLED"] } } });
         if (assigned) return null;
       }
-      const updated = await tx.adminUser.update({ where: { id }, data: { ...data, canCollectCash: (input.role ?? current.role) === "DRIVER" ? input.canCollectCash ?? current.canCollectCash : false } });
-      await tx.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: input.password ? "STAFF_PASSWORD_RESET" : "STAFF_UPDATED", entityType: "AdminUser", entityId: id, details: JSON.stringify({ role: input.role, isActive: input.isActive, canCollectCash: updated.canCollectCash }) } });
+      const updated = await tx.adminUser.update({ where: { id }, data: { ...data, canCollectCash: (input.role ?? current.role) === "DRIVER" ? input.canCollectCash ?? current.canCollectCash : false, canCollectCard: (input.role ?? current.role) === "DRIVER" ? input.canCollectCard ?? current.canCollectCard : false, canCollectTransfer: (input.role ?? current.role) === "DRIVER" ? input.canCollectTransfer ?? current.canCollectTransfer : false } });
+      await tx.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: input.password ? "STAFF_PASSWORD_RESET" : "STAFF_UPDATED", entityType: "AdminUser", entityId: id, details: JSON.stringify({ role: input.role, isActive: input.isActive, canCollectCash: updated.canCollectCash, canCollectCard: updated.canCollectCard, canCollectTransfer: updated.canCollectTransfer }) } });
       return updated;
     });
     if (!user) return NextResponse.json({ error: "Reasigna o cierra los pedidos pendientes del repartidor antes de desactivar o cambiar su rol." }, { status: 409 });
-    return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive, canCollectCash: user.canCollectCash, mustChangePassword: user.mustChangePassword, lastLoginAt: user.lastLoginAt?.toISOString() ?? null } });
+    return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive, canCollectCash: user.canCollectCash, canCollectCard: user.canCollectCard, canCollectTransfer: user.canCollectTransfer, mustChangePassword: user.mustChangePassword, lastLoginAt: user.lastLoginAt?.toISOString() ?? null } });
   } catch (error) { return apiError(error); }
 }

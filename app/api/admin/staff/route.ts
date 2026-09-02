@@ -6,8 +6,8 @@ import { requireRoleApi } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { passwordSchema, staffRoleSchema } from "@/lib/validation";
 
-const createSchema = z.object({ name: z.string().trim().min(2).max(100), email: z.email(), role: staffRoleSchema, password: passwordSchema, canCollectCash: z.boolean().default(false) });
-const view = (user: { id: string; email: string; name: string; role: string; isActive: boolean; canCollectCash: boolean; mustChangePassword: boolean; lastLoginAt: Date | null }) => ({ id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive, canCollectCash: user.canCollectCash, mustChangePassword: user.mustChangePassword, lastLoginAt: user.lastLoginAt?.toISOString() ?? null });
+const createSchema = z.object({ name: z.string().trim().min(2).max(100), email: z.email(), role: staffRoleSchema, password: passwordSchema, canCollectCash: z.boolean().default(false), canCollectCard: z.boolean().default(false), canCollectTransfer: z.boolean().default(false) });
+const view = (user: { id: string; email: string; name: string; role: string; isActive: boolean; canCollectCash: boolean; canCollectCard: boolean; canCollectTransfer: boolean; mustChangePassword: boolean; lastLoginAt: Date | null }) => ({ id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive, canCollectCash: user.canCollectCash, canCollectCard: user.canCollectCard, canCollectTransfer: user.canCollectTransfer, mustChangePassword: user.mustChangePassword, lastLoginAt: user.lastLoginAt?.toISOString() ?? null });
 
 export async function GET() {
   try {
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (await db.adminUser.findUnique({ where: { email: input.email } })) return NextResponse.json({ error: "Ya existe un usuario con ese correo." }, { status: 409 });
     const passwordHash = await hash(input.password, 12);
     const user = await db.$transaction(async (transaction) => {
-      const created = await transaction.adminUser.create({ data: { name: input.name, email: input.email, role: input.role, canCollectCash: input.role === "DRIVER" && input.canCollectCash, passwordHash, isActive: true, mustChangePassword: true, passwordChangedAt: new Date() } });
+      const created = await transaction.adminUser.create({ data: { name: input.name, email: input.email, role: input.role, canCollectCash: input.role === "DRIVER" && input.canCollectCash, canCollectCard: input.role === "DRIVER" && input.canCollectCard, canCollectTransfer: input.role === "DRIVER" && input.canCollectTransfer, passwordHash, isActive: true, mustChangePassword: true, passwordChangedAt: new Date() } });
       await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "STAFF_CREATED", entityType: "AdminUser", entityId: created.id, details: JSON.stringify({ email: created.email, role: created.role }) } });
       return created;
     });

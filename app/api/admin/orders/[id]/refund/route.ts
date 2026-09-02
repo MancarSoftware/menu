@@ -3,6 +3,7 @@ import { z } from "zod";
 import { assertSameOrigin, apiError } from "@/lib/api";
 import { requireRoleApi } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { staffDisplayName } from "@/lib/payment-labels";
 import { paymentMethodSchema } from "@/lib/validation";
 
 const schema = z.discriminatedUnion("action", [
@@ -30,9 +31,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       if (order.paymentMethod === "CASH" && !openShift) return NextResponse.json({ error: "Abre la caja antes de registrar un reembolso en efectivo." }, { status: 409 });
       const nextNet = netPaid - input.amountCents;
       await db.$transaction([
-        db.paymentEvent.create({ data: { orderId, shiftId: openShift?.id, type: "REFUND", method: order.paymentMethod ?? "CASH", amountCents: input.amountCents, reason: input.reason, actorUserId: session.id, actorName: session.email } }),
+        db.paymentEvent.create({ data: { orderId, shiftId: openShift?.id, type: "REFUND", method: order.paymentMethod ?? "CASH", amountCents: input.amountCents, reason: input.reason, actorUserId: session.id, actorName: staffDisplayName(session.name) } }),
         db.customerOrder.update({ where: { id: orderId }, data: { paymentStatus: nextNet === 0 ? "REFUNDED" : "PARTIALLY_REFUNDED", version: { increment: 1 } } }),
-        db.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "PAYMENT_REFUNDED", entityType: "CustomerOrder", entityId: String(orderId), details: JSON.stringify({ amountCents: input.amountCents, reason: input.reason }) } }),
+        db.auditLog.create({ data: { actorUserId: session.id, actorName: staffDisplayName(session.name), action: "PAYMENT_REFUNDED", entityType: "CustomerOrder", entityId: String(orderId), details: JSON.stringify({ amountCents: input.amountCents, reason: input.reason }) } }),
       ]);
     } else {
       const affectedShiftIds = [...new Set(order.paymentEvents.filter((event) => event.type === "PAYMENT" && event.shiftId).map((event) => event.shiftId!))];
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           const expectedCashCents = shift.openingBalanceCents + cashSalesCents;
           await transaction.cashRegisterShift.update({ where: { id: shiftId }, data: { expectedCashCents, discrepancyCents: shift.actualCashCents - expectedCashCents } });
         }
-        await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "PAYMENT_METHOD_CORRECTED", entityType: "CustomerOrder", entityId: String(orderId), details: JSON.stringify({ from: order.paymentMethod, to: input.paymentMethod, reason: input.reason }) } });
+        await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: staffDisplayName(session.name), action: "PAYMENT_METHOD_CORRECTED", entityType: "CustomerOrder", entityId: String(orderId), details: JSON.stringify({ from: order.paymentMethod, to: input.paymentMethod, reason: input.reason }) } });
       });
     }
     return NextResponse.json({ ok: true });

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Banknote, BarChart3, Check, ChefHat, ChevronRight, CircleOff, Edit3, ExternalLink, ImagePlus, LayoutList, LogOut, MapPinned, Plus, QrCode, Search, Trash2, UserRoundCog, UtensilsCrossed, X } from "lucide-react";
 import type { AdminMetricsView, DiningTableView, MenuCategoryView, MenuItemView, OrderView, RestaurantView, StaffRole } from "@/lib/domain";
 import { getBusinessDate } from "@/lib/business-date";
@@ -14,6 +14,8 @@ import { ReportsPanel } from "./reports-panel";
 import { CashRegister } from "./cash-register";
 import { StaffManager } from "./staff-manager";
 import { DeliveryBoard } from "./delivery-board";
+import { useBusinessToday } from "./use-business-today";
+import { useLiveRefresh } from "./use-live-refresh";
 
 type Tab = "overview" | "orders" | "deliveries" | "reports" | "cash" | "tables" | "categories" | "items" | "restaurant" | "staff";
 type Notice = { kind: "success" | "error"; message: string } | null;
@@ -31,7 +33,11 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   const [sectionRestored, setSectionRestored] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [metrics, setMetrics] = useState(initialMetrics);
-  const [revenueDate, setRevenueDate] = useState(initialMetrics.date);
+  const latestMetricsRequest = useRef(0);
+  const today = useBusinessToday();
+  const [selectedRevenueDate, setSelectedRevenueDate] = useState<string | null>(null);
+  const revenueDate = selectedRevenueDate ?? today;
+  const setRevenueDate = (date: string) => setSelectedRevenueDate(date === today ? null : date);
   const items = categories.flatMap((category) => category.items);
   const available = items.filter((item) => item.isAvailable).length;
 
@@ -56,19 +62,17 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   }, [sectionRestored, tab]);
 
   const refreshMetrics = useCallback(async (date = revenueDate) => {
+    const request = ++latestMetricsRequest.current;
     try {
       const result = await requestJson<{ metrics: AdminMetricsView }>(`/api/admin/metrics?date=${encodeURIComponent(date)}`);
-      setMetrics(result.metrics);
+      if (request === latestMetricsRequest.current) setMetrics(result.metrics);
     } catch (error) {
       if (error instanceof SessionExpiredError) router.push("/admin/login");
     }
   }, [revenueDate, router]);
 
-  useEffect(() => {
-    if (!["ADMIN", "CASHIER"].includes(role)) return;
-    const interval = window.setInterval(refreshMetrics, 10000);
-    return () => window.clearInterval(interval);
-  }, [refreshMetrics, role]);
+  const refreshCurrentMetrics = useCallback(() => refreshMetrics(), [refreshMetrics]);
+  useLiveRefresh(refreshCurrentMetrics, ["ADMIN", "CASHIER"].includes(role));
 
   useEffect(() => {
     if (!notice) return;

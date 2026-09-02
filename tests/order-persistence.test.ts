@@ -96,7 +96,8 @@ describe("kitchen continuity", () => {
   it("keeps live tickets and their stages across sections and restores the kitchen on remount", async () => {
     let serverOrder = order;
     vi.stubGlobal("fetch", vi.fn(async (_url: string, options?: RequestInit) => {
-      if (_url === "/api/admin/deliveries") return { ok: true, status: 200, json: async () => ({ orders: [], drivers: [], canCollectCash: false }) };
+      if (_url.startsWith("/api/admin/deliveries")) return { ok: true, status: 200, json: async () => ({ orders: [], drivers: [], canCollectCash: false, allowedPaymentMethods: [], total: 0, page: 1, pageSize: 20 }) };
+      if (_url.startsWith("/api/admin/metrics")) return { ok: true, status: 200, json: async () => ({ metrics: { date: "2026-09-01", revenueCents: 0, paidOrderCount: 0 } }) };
       if (options?.method === "PATCH") {
         serverOrder = { ...order, status: "PREPARING", acknowledgedAt: order.createdAt, version: 2 };
         return { ok: true, status: 200, json: async () => ({ order: serverOrder }) };

@@ -37,10 +37,10 @@ export async function getSession() {
   try {
     const { payload } = await jwtVerify(token, getTokenSecret());
     if (!payload.sub) return null;
-    const user = await db.adminUser.findUnique({ where: { id: payload.sub }, select: { id: true, email: true, role: true, isActive: true, canCollectCash: true, passwordChangedAt: true } });
+    const user = await db.adminUser.findUnique({ where: { id: payload.sub }, select: { id: true, name: true, email: true, role: true, isActive: true, canCollectCash: true, canCollectCard: true, canCollectTransfer: true, passwordChangedAt: true } });
     if (!user?.isActive || !STAFF_ROLES.includes(user.role as StaffRole)) return null;
     if (user.passwordChangedAt && (!payload.iat || payload.iat < Math.floor(user.passwordChangedAt.getTime() / 1000))) return null;
-    return { id: user.id, email: user.email, role: user.role as StaffRole, canCollectCash: user.canCollectCash };
+    return { id: user.id, name: user.name, email: user.email, role: user.role as StaffRole, canCollectCash: user.canCollectCash, canCollectCard: user.canCollectCard, canCollectTransfer: user.canCollectTransfer };
   } catch {
     return null;
   }

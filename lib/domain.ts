@@ -66,7 +66,7 @@ export type PaymentMethod = "CASH" | "CARD" | "TRANSFER";
 export type StaffRole = "ADMIN" | "CASHIER" | "WAITER" | "KITCHEN" | "DRIVER";
 export type DeliveryStatus = "PENDING" | "OUT_FOR_DELIVERY" | "DELIVERED";
 export type DeliveryPoint = { latitude: number; longitude: number };
-export type DeliveryOrderView = OrderView & { assignedDriver: { id: string; name: string } | null };
+export type DeliveryOrderView = OrderView & { assignedDriver: { id: string; name: string } | null; deliveredAt: string | null };
 export type OrderItemView = {
   id: string;
   productName: string;
@@ -141,5 +141,7 @@ export type StaffUserView = {
   isActive: boolean;
   mustChangePassword: boolean;
   canCollectCash: boolean;
+  canCollectCard: boolean;
+  canCollectTransfer: boolean;
   lastLoginAt: string | null;
 };

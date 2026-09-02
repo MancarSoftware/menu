@@ -1,7 +1,7 @@
-import type { OrderView, StaffRole } from "./domain";
+import type { OrderView, PaymentMethod, StaffRole } from "./domain";
 
 type DeliveryRecord = { mode: string; status: string; deliveryStatus: string; assignedDriverId: string | null };
-type DeliveryActor = { id: string; role: StaffRole; canCollectCash: boolean };
+type DeliveryActor = { id: string; role: StaffRole; canCollectCash: boolean; canCollectCard?: boolean; canCollectTransfer?: boolean };
 
 export function deliveryActionError(order: DeliveryRecord, actor: DeliveryActor, action: "ASSIGN" | "DISPATCH" | "DELIVER") {
   if (order.mode !== "DELIVERY" || ["CANCELLED", "PAID"].includes(order.status)) return "Este pedido no admite cambios de reparto.";
@@ -19,8 +19,12 @@ export function deliveryActionError(order: DeliveryRecord, actor: DeliveryActor,
   return null;
 }
 
-export function canDriverCollectCash(order: DeliveryRecord, actor: DeliveryActor, method?: string) {
-  return actor.role === "DRIVER" && actor.canCollectCash && order.mode === "DELIVERY" && order.assignedDriverId === actor.id && order.deliveryStatus === "DELIVERED" && order.status === "SERVED" && method === "CASH";
+export function driverPaymentMethods(actor: Pick<DeliveryActor, "canCollectCash" | "canCollectCard" | "canCollectTransfer">): PaymentMethod[] {
+  return (["CASH", "CARD", "TRANSFER"] as const).filter((method) => method === "CASH" ? actor.canCollectCash : method === "CARD" ? actor.canCollectCard : actor.canCollectTransfer);
+}
+
+export function canDriverCollectPayment(order: DeliveryRecord, actor: DeliveryActor, method?: string) {
+  return actor.role === "DRIVER" && driverPaymentMethods(actor).includes(method as PaymentMethod) && order.mode === "DELIVERY" && order.assignedDriverId === actor.id && order.deliveryStatus === "DELIVERED" && order.status === "SERVED";
 }
 
 export function deliveryDirectionsUrl(order: Pick<OrderView, "deliveryLatitude" | "deliveryLongitude" | "deliveryAddress">) {

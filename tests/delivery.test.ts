@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canDriverCollectCash, deliveryActionError, deliveryDirectionsUrl } from "@/lib/delivery";
+import { canDriverCollectPayment, deliveryActionError, deliveryDirectionsUrl } from "@/lib/delivery";
 import { publicOrderSchema, staffRoleSchema } from "@/lib/validation";
 
 const driver = { id: "driver1", role: "DRIVER" as const, canCollectCash: false };
@@ -61,10 +61,10 @@ describe("delivery workflow permissions", () => {
   it("requires explicit permission, ownership, completed delivery and cash method to collect", () => {
     const delivered = { ...order, status: "SERVED", deliveryStatus: "DELIVERED" };
     const authorized = { ...driver, canCollectCash: true };
-    expect(canDriverCollectCash(delivered, driver, "CASH")).toBe(false);
-    expect(canDriverCollectCash(delivered, authorized, "CARD")).toBe(false);
-    expect(canDriverCollectCash(delivered, { ...authorized, id: "other" }, "CASH")).toBe(false);
-    expect(canDriverCollectCash(order, authorized, "CASH")).toBe(false);
-    expect(canDriverCollectCash(delivered, authorized, "CASH")).toBe(true);
+    expect(canDriverCollectPayment(delivered, driver, "CASH")).toBe(false);
+    expect(canDriverCollectPayment(delivered, authorized, "CARD")).toBe(false);
+    expect(canDriverCollectPayment(delivered, { ...authorized, id: "other" }, "CASH")).toBe(false);
+    expect(canDriverCollectPayment(order, authorized, "CASH")).toBe(false);
+    expect(canDriverCollectPayment(delivered, authorized, "CASH")).toBe(true);
   });
 });

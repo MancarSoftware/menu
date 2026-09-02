@@ -4,15 +4,18 @@ import { GET } from "@/app/api/admin/deliveries/route";
 import { PATCH } from "@/app/api/admin/deliveries/[id]/route";
 import { GET as getStaff } from "@/app/api/admin/staff/route";
 import { PATCH as payOrder } from "@/app/api/admin/orders/[id]/route";
+import { getAdminMetrics } from "@/lib/menu-repository";
+import { GET as getCashShifts } from "@/app/api/admin/cash-shifts/route";
 
 const mocks = vi.hoisted(() => ({
-  session: { id: "driver1", email: "driver@example.invalid", role: "DRIVER", canCollectCash: false },
+  session: { id: "driver1", name: "Test Driver", canCollectCard: false, canCollectTransfer: false, email: "driver@example.invalid", role: "DRIVER", canCollectCash: false },
   db: {
-    customerOrder: { findMany: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn() },
+    customerOrder: { count: vi.fn().mockResolvedValue(0), findMany: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn() },
     adminUser: { findMany: vi.fn(), findFirst: vi.fn() },
-    cashRegisterShift: { findFirst: vi.fn() },
+    cashRegisterShift: { findFirst: vi.fn(), findMany: vi.fn() },
     orderStatusHistory: { create: vi.fn() },
     auditLog: { create: vi.fn() },
+    paymentEvent: { create: vi.fn(), groupBy: vi.fn() },
     $queryRaw: vi.fn(), $transaction: vi.fn(),
   },
 }));
@@ -26,7 +29,7 @@ const context = { params: Promise.resolve({ id: "4" }) };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  Object.assign(mocks.session, { id: "driver1", role: "DRIVER", canCollectCash: false });
+  Object.assign(mocks.session, { id: "driver1", role: "DRIVER", canCollectCash: false, canCollectCard: false, canCollectTransfer: false });
   mocks.db.customerOrder.findMany.mockResolvedValue([]);
   mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue(current);
   mocks.db.customerOrder.updateMany.mockResolvedValue({ count: 1 });
@@ -100,5 +103,52 @@ describe("delivery API boundaries (database mocked)", () => {
     expect(body.users[0].role).toBe("DRIVER");
     expect(JSON.stringify(body)).not.toContain("passwordHash");
     expect(JSON.stringify(body)).not.toContain("never-return-this-hash");
+  });
+  it.each(["CASH", "CARD", "TRANSFER"])("records an authorized driver's %s collection once in the revenue ledger, using their name", async (method) => {
+    mocks.session.canCollectCash = true; mocks.session.canCollectCard = true; mocks.session.canCollectTransfer = true;
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, status: "SERVED", deliveryStatus: "DELIVERED", totalCents: 1574, diningTableId: null });
+    mocks.db.cashRegisterShift.findFirst.mockResolvedValue({ id: "shift1" });
+    mocks.db.$queryRaw.mockResolvedValue([{ status: "OPEN" }]);
+    expect((await payOrder(request({ status: "PAID", paymentMethod: method, version: 3 }), context)).status).toBe(200);
+    const event = mocks.db.paymentEvent.create.mock.calls[0][0].data;
+    expect(event).toMatchObject({ type: "PAYMENT", method, amountCents: 1574, actorName: "Test Driver", actorUserId: "driver1", shiftId: "shift1" });
+    expect(JSON.stringify(event)).not.toContain("@");
+    mocks.db.paymentEvent.groupBy.mockResolvedValue([{ type: "PAYMENT", _sum: { amountCents: event.amountCents }, _count: { _all: 1 } }]);
+    const metrics = await getAdminMetrics("2026-09-02");
+    expect(metrics).toEqual({ date: "2026-09-02", revenueCents: 1574, paidOrderCount: 1 });
+    expect(mocks.db.paymentEvent.groupBy.mock.calls[0][0].where.createdAt.gte.toISOString()).toBe("2026-09-02T05:00:00.000Z");
+    mocks.db.customerOrder.updateMany.mockResolvedValue({ count: 0 });
+    expect((await payOrder(request({ status: "PAID", paymentMethod: method, version: 3 }), context)).status).toBe(409);
+    expect(mocks.db.paymentEvent.create).toHaveBeenCalledTimes(1);
+  });
+  it("does not expand existing cash-only permission to card or transfer", async () => {
+    mocks.session.canCollectCash = true;
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, status: "SERVED", deliveryStatus: "DELIVERED" });
+    expect((await payOrder(request({ status: "PAID", paymentMethod: "CARD", version: 3 }), context)).status).toBe(403);
+    expect((await payOrder(request({ status: "PAID", paymentMethod: "TRANSFER", version: 3 }), context)).status).toBe(403);
+    expect(mocks.db.paymentEvent.create).not.toHaveBeenCalled();
+  });
+  it("rejects a collection if its cash shift closed before the transaction acquired its lock", async () => {
+    mocks.session.canCollectCash = true;
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, status: "SERVED", deliveryStatus: "DELIVERED", totalCents: 1574 });
+    mocks.db.cashRegisterShift.findFirst.mockResolvedValue({ id: "shift1" });
+    mocks.db.$queryRaw.mockResolvedValue([{ status: "CLOSED" }]);
+    expect((await payOrder(request({ status: "PAID", paymentMethod: "CASH", version: 3 }), context)).status).toBe(409);
+    expect(mocks.db.customerOrder.updateMany).not.toHaveBeenCalled();
+    expect(mocks.db.paymentEvent.create).not.toHaveBeenCalled();
+  });
+  it("includes driver cash in register totals without filtering by collector or including noncash", async () => {
+    mocks.session.role = "CASHIER";
+    mocks.db.cashRegisterShift.findMany.mockResolvedValue([{ id: "shift1", businessDate: "2026-09-02", status: "OPEN", openingBalanceCents: 2000, actualCashCents: null, discrepancyCents: null, openedByName: "Caja", closedByName: null, openedAt: new Date(), closedAt: null }]);
+    mocks.db.paymentEvent.groupBy.mockResolvedValue([{ type: "PAYMENT", _sum: { amountCents: 1574 } }]);
+    const result = await (await getCashShifts()).json();
+    expect(mocks.db.paymentEvent.groupBy.mock.calls[0][0].where).toEqual({ shiftId: "shift1", method: "CASH" });
+    expect(result.shifts[0]).toMatchObject({ cashSalesCents: 1574, expectedCashCents: 3574 });
+  });
+  it("keeps history restricted to the driver and includes paid deliveries with date and pagination", async () => {
+    expect((await GET(new Request("http://localhost/api/admin/deliveries?view=history&date=2026-09-02&page=2"))).status).toBe(200);
+    const args = mocks.db.customerOrder.findMany.mock.calls[0][0];
+    expect(args).toMatchObject({ take: 20, skip: 20, where: { mode: "DELIVERY", assignedDriverId: "driver1", deliveryStatus: "DELIVERED", status: { not: "CANCELLED" } } });
+    expect(args.where.OR[0].deliveredAt.gte.toISOString()).toBe("2026-09-02T05:00:00.000Z");
   });
 });

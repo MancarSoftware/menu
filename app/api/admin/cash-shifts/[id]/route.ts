@@ -13,13 +13,14 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!assertSameOrigin(request)) return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
     const { id } = await context.params;
     const input = closeSchema.parse(await request.json());
-    const shift = await db.cashRegisterShift.findUnique({ where: { id } });
-    if (!shift || shift.status !== "OPEN") return NextResponse.json({ error: "La caja ya está cerrada o no existe." }, { status: 409 });
-    const totals = await db.paymentEvent.groupBy({ by: ["type"], where: { shiftId: id, method: "CASH" }, _sum: { amountCents: true } });
-    const cashSalesCents = (totals.find((row) => row.type === "PAYMENT")?._sum.amountCents ?? 0) - (totals.find((row) => row.type === "REFUND")?._sum.amountCents ?? 0);
-    const expectedCashCents = shift.openingBalanceCents + cashSalesCents;
-    const discrepancyCents = input.actualCashCents - expectedCashCents;
     const updated = await db.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT "id" FROM "CashRegisterShift" WHERE "id" = ${id} FOR UPDATE`;
+      const shift = await transaction.cashRegisterShift.findUnique({ where: { id } });
+      if (!shift || shift.status !== "OPEN") throw new Error("SHIFT_CONFLICT");
+      const totals = await transaction.paymentEvent.groupBy({ by: ["type"], where: { shiftId: id, method: "CASH" }, _sum: { amountCents: true } });
+      const cashSalesCents = (totals.find((row) => row.type === "PAYMENT")?._sum.amountCents ?? 0) - (totals.find((row) => row.type === "REFUND")?._sum.amountCents ?? 0);
+      const expectedCashCents = shift.openingBalanceCents + cashSalesCents;
+      const discrepancyCents = input.actualCashCents - expectedCashCents;
       const changed = await transaction.cashRegisterShift.updateMany({ where: { id, status: "OPEN" }, data: { status: "CLOSED", expectedCashCents, actualCashCents: input.actualCashCents, discrepancyCents, closedAt: new Date(), closedByUserId: session.id, closedByName: session.email, notes: input.notes || shift.notes } });
       if (changed.count !== 1) throw new Error("SHIFT_CONFLICT");
       await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "CASH_SHIFT_CLOSED", entityType: "CashRegisterShift", entityId: id, details: JSON.stringify({ expectedCashCents, actualCashCents: input.actualCashCents, discrepancyCents }) } });
