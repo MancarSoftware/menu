@@ -97,6 +97,9 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
         <p>{isCancelled ? "Consulta al personal si necesitas hacer un nuevo pedido." : order.status === "PAID" ? order.mode === "DINE_IN" ? "Pago registrado. Estamos cerrando la sesión de tu mesa." : "Pago registrado. Gracias por tu pedido." : "La cocina recibió tu orden. Esta pantalla se actualiza automáticamente."}</p>
       </header>
 
+      {order.deliveryStatus === "FAILED" && !isCancelled && <p className="order-connection" role="status">No se pudo completar la entrega. El local está revisando la incidencia; contacta al restaurante para coordinar un reintento. Tu pedido sigue registrado.</p>}
+      {isCancelled && order.cancellationReason && <p className="order-connection">Motivo: {order.cancellationReason}</p>}
+
       {!isCancelled && <ol className="order-progress" data-delivery={order.mode === "DELIVERY"} aria-label="Estado del pedido">
         {displaySteps.map((step, index) => {
           const Icon = step.icon;

@@ -10,6 +10,7 @@ let collections = collectionFixture();
 let failCollections = false;
 let failShifts = false;
 const fetchMock = vi.fn(async (url: string) => {
+  if (url.includes("cash-handovers")) return { ok: true, status: 200, json: async () => ({ pending: [], history: [], pendingCount: 0, totalPendingCents: 0 }) };
   const isCollections = url.includes("cash-collections");
   const failed = isCollections ? failCollections : failShifts;
   const params = new URL(url, "http://localhost").searchParams;

@@ -59,13 +59,16 @@ export function DeliveryBoard({ manager }: { manager: boolean }) {
     generation.current++; setView(next); setPage(1); setLoaded(false); setPaymentId(null);
   }
 
-  async function act(order: DeliveryOrderView, action: "ASSIGN" | "DISPATCH" | "DELIVER" | "PAYMENT", driverId?: string) {
+  async function act(order: DeliveryOrderView, action: "ASSIGN" | "DISPATCH" | "DELIVER" | "PAYMENT" | "REPORT_ISSUE" | "RETRY", driverId?: string) {
     if (busy.current) return;
+    const reason = ["REPORT_ISSUE", "RETRY"].includes(action) ? window.prompt(action === "REPORT_ISSUE" ? "¿Qué impidió la entrega? Indica el motivo (mínimo 4 caracteres)." : "¿Cómo se resolvió la incidencia? Indica el motivo del reintento.")?.trim() : undefined;
+    if (["REPORT_ISSUE", "RETRY"].includes(action) && !reason) return;
+    if (reason && (reason.length < 4 || reason.length > 240)) { setNotice("El motivo debe tener entre 4 y 240 caracteres."); return; }
     busy.current = true; generation.current++; setPending(order.id); setNotice("");
     let failure = "";
     try {
       if (action === "PAYMENT") await requestJson(`/api/admin/orders/${order.id}`, "PATCH", { version: order.version, status: "PAID", paymentMethod });
-      else await requestJson(`/api/admin/deliveries/${order.id}`, "PATCH", { action, version: order.version, ...(driverId ? { driverId } : {}) });
+      else await requestJson(`/api/admin/deliveries/${order.id}`, "PATCH", { action, version: order.version, ...(reason ? { reason } : {}), ...(driverId ? { driverId } : {}) });
       setPaymentId(null);
       setNotice(action === "PAYMENT" ? "Cobro registrado. Puedes consultar el pedido en Completadas." : "Reparto actualizado.");
     } catch (reason) { failure = reason instanceof Error ? reason.message : "No pudimos actualizar este reparto."; }
@@ -97,9 +100,12 @@ export function DeliveryBoard({ manager }: { manager: boolean }) {
         {order.deliveryLatitude == null && order.deliveryAddress && <small>Pedido anterior: la ruta usa la dirección escrita. Confírmala con el cliente.</small>}
         <details><summary>{order.items.reduce((sum, item) => sum + item.quantity, 0)} productos · Ver pedido</summary><ul>{order.items.map((item) => <li key={item.id}><strong>{item.quantity} × {item.productName}</strong>{item.customization.length > 0 && <small>{item.customization.join(" · ")}</small>}</li>)}</ul></details>
         {order.notes && <p>Nota: {order.notes}</p>}
+        {order.deliveryStatus === "FAILED" && <p className="admin-inline-message">Entrega pendiente de resolver: {order.deliveryIssue}. Contacta a caja. No marques el pedido entregado ni cobrado.</p>}
         <p className="delivery-ticket__total"><span>{order.paymentStatus === "PAID" ? `Pagado · ${order.paymentMethod ? paymentMethodLabels[order.paymentMethod] : ""}` : order.paymentStatus === "REFUNDED" ? "Reembolsado" : order.paymentStatus === "PARTIALLY_REFUNDED" ? "Reembolso parcial" : "Pendiente de cobro"}</span><strong>{formatPrice(order.totalCents)}</strong></p>
         {manager && order.deliveryStatus !== "DELIVERED" ? <label className="delivery-ticket__assignment">Repartidor asignado<select aria-label={`Repartidor del pedido ${order.orderNumber}`} value={order.assignedDriver?.id ?? ""} disabled={pending !== null} onChange={(event) => { if (event.target.value) void act(order, "ASSIGN", event.target.value); }}><option value="" disabled>Selecciona un repartidor</option>{feed.drivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.name}</option>)}</select>{order.deliveryStatus === "OUT_FOR_DELIVERY" && <small>Reasigna solo si el nuevo repartidor se hace cargo. El cambio queda registrado.</small>}</label> : <p>Repartidor: <strong>{order.assignedDriver?.name ?? "Sin asignar"}</strong></p>}
         <footer>
+          {view === "active" && order.deliveryStatus === "OUT_FOR_DELIVERY" && <button type="button" className="button button--line" disabled={pending !== null} onClick={() => void act(order, "REPORT_ISSUE")}>No pude entregar</button>}
+          {manager && view === "active" && order.deliveryStatus === "FAILED" && <button type="button" className="button button--line" disabled={pending !== null} onClick={() => void act(order, "RETRY")}>Autorizar reintento</button>}
           <a className="delivery-ticket__receipt" href={`/admin/pedidos/${order.id}/comprobante`} target="_blank" rel="noopener noreferrer"><Printer aria-hidden="true" />Ver / imprimir comprobante</a>
           {view === "active" && order.assignedDriver && order.status === "READY" && order.deliveryStatus === "PENDING" && <button type="button" className="button button--solid" disabled={pending !== null} onClick={() => void act(order, "DISPATCH")}><Truck aria-hidden="true" />Salir a reparto</button>}
           {view === "active" && order.status === "READY" && order.deliveryStatus === "OUT_FOR_DELIVERY" && <button type="button" className="button button--solid" disabled={pending !== null} onClick={() => void act(order, "DELIVER")}><Check aria-hidden="true" />Confirmar entrega</button>}

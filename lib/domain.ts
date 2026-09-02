@@ -64,7 +64,7 @@ export type OrderStatus = "RECEIVED" | "PREPARING" | "READY" | "SERVED" | "PAID"
 export type OrderMode = "DINE_IN" | "DELIVERY" | "PICKUP";
 export type PaymentMethod = "CASH" | "CARD" | "TRANSFER";
 export type StaffRole = "ADMIN" | "CASHIER" | "WAITER" | "KITCHEN" | "DRIVER";
-export type DeliveryStatus = "PENDING" | "OUT_FOR_DELIVERY" | "DELIVERED";
+export type DeliveryStatus = "PENDING" | "OUT_FOR_DELIVERY" | "DELIVERED" | "FAILED";
 export type DeliveryPoint = { latitude: number; longitude: number };
 export type DeliveryOrderView = OrderView & { assignedDriver: { id: string; name: string } | null; deliveredAt: string | null };
 export type OrderItemView = {
@@ -94,6 +94,8 @@ export type OrderView = {
   deliveryLatitude: number | null;
   deliveryLongitude: number | null;
   deliveryStatus: DeliveryStatus;
+  deliveryIssue?: string | null;
+  cancellationReason?: string | null;
   acknowledgedAt: string | null;
   version: number;
   createdAt: string;
@@ -124,6 +126,7 @@ export type CashShiftView = {
   status: "OPEN" | "CLOSED";
   openingBalanceCents: number;
   cashSalesCents: number;
+  pendingDriverCashCents: number;
   expectedCashCents: number;
   actualCashCents: number | null;
   discrepancyCents: number | null;

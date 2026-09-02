@@ -10,7 +10,7 @@ test("admin can publish, update, disable and remove a product", async ({ page })
   await expect(page).toHaveURL(/\/admin$/);
   await page.getByRole("button", { name: "Productos", exact: true }).click();
   await page.getByLabel("Nombre").fill(productName);
-  await page.getByLabel("Precio RD$").fill("350");
+  await page.getByLabel("Precio USD").fill("3.50");
   await page.getByLabel("Descripción breve").fill("Producto temporal para verificar el flujo completo.");
   await page.getByLabel("Descripción completa").fill("Preparación temporal creada por la prueba de integración de administración.");
   await page.getByLabel(/Ingredientes/).fill("Maíz, Ají, Hierbas");
@@ -19,7 +19,7 @@ test("admin can publish, update, disable and remove a product", async ({ page })
   await page.getByPlaceholder("Buscar plato").fill(productName);
   await expect(page.getByText(productName, { exact: true }).last()).toBeVisible();
   await page.getByRole("button", { name: `Editar ${productName}` }).click();
-  await page.getByLabel("Precio RD$").fill("390");
+  await page.getByLabel("Precio USD").fill("3.90");
   await page.getByRole("button", { name: "Guardar producto" }).click();
   await expect(page.getByText("Producto actualizado y publicado.")).toBeVisible();
   await page.getByPlaceholder("Buscar plato").fill(productName);

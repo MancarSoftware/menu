@@ -3,10 +3,12 @@ import type { OrderView, PaymentMethod, StaffRole } from "./domain";
 type DeliveryRecord = { mode: string; status: string; deliveryStatus: string; assignedDriverId: string | null };
 type DeliveryActor = { id: string; role: StaffRole; canCollectCash: boolean; canCollectCard?: boolean; canCollectTransfer?: boolean };
 
-export function deliveryActionError(order: DeliveryRecord, actor: DeliveryActor, action: "ASSIGN" | "DISPATCH" | "DELIVER") {
+export function deliveryActionError(order: DeliveryRecord, actor: DeliveryActor, action: "ASSIGN" | "DISPATCH" | "DELIVER" | "REPORT_ISSUE" | "RETRY") {
   if (order.mode !== "DELIVERY" || ["CANCELLED", "PAID"].includes(order.status)) return "Este pedido no admite cambios de reparto.";
   const manager = ["ADMIN", "CASHIER"].includes(actor.role);
   if (!manager && (actor.role !== "DRIVER" || order.assignedDriverId !== actor.id)) return "Este pedido no está asignado a tu cuenta.";
+  if (action === "REPORT_ISSUE") return order.status === "READY" && order.deliveryStatus === "OUT_FOR_DELIVERY" ? null : "Solo puedes reportar una incidencia de un reparto en camino.";
+  if (action === "RETRY") return manager && order.status === "READY" && order.deliveryStatus === "FAILED" ? null : "Caja debe autorizar el reintento de una entrega con incidencia.";
   if (action === "ASSIGN") {
     if (!manager) return "Solo caja o administración puede asignar repartidores.";
     if (order.deliveryStatus === "DELIVERED") return "El pedido ya fue entregado.";
@@ -35,5 +37,5 @@ export function deliveryDirectionsUrl(order: Pick<OrderView, "deliveryLatitude" 
 }
 
 export function deliveryStatusLabel(status: string) {
-  return status === "OUT_FOR_DELIVERY" ? "En camino" : status === "DELIVERED" ? "Entregado" : "Por despachar";
+  return status === "FAILED" ? "Incidencia de entrega" : status === "OUT_FOR_DELIVERY" ? "En camino" : status === "DELIVERED" ? "Entregado" : "Por despachar";
 }

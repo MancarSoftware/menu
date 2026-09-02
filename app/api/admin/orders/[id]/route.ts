@@ -8,11 +8,11 @@ import { orderStatusSchema, paymentMethodSchema } from "@/lib/validation";
 import { canDriverCollectPayment } from "@/lib/delivery";
 import { staffDisplayName } from "@/lib/payment-labels";
 
-const updateSchema = z.object({ status: orderStatusSchema, paymentMethod: paymentMethodSchema.optional(), version: z.number().int().positive() });
+const updateSchema = z.object({ status: orderStatusSchema, paymentMethod: paymentMethodSchema.optional(), version: z.number().int().positive(), reason: z.string().trim().min(4).max(240).optional() });
 const transitions: Record<string, string[]> = {
   RECEIVED: ["PREPARING", "CANCELLED"],
   PREPARING: ["READY", "CANCELLED"],
-  READY: ["SERVED"],
+  READY: ["SERVED", "CANCELLED"],
   SERVED: ["PAID"],
 };
 
@@ -26,6 +26,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!Number.isInteger(orderId)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
     const input = updateSchema.parse(await request.json());
     const current = await db.customerOrder.findUniqueOrThrow({ where: { id: orderId } });
+    if (input.version !== current.version) return NextResponse.json({ error: "El pedido cambió. Actualiza la vista antes de continuar." }, { status: 409 });
+    if (input.status === "CANCELLED") {
+      if (!["ADMIN", "CASHIER"].includes(session.role)) return NextResponse.json({ error: "Caja o administración debe autorizar la cancelación." }, { status: 403 });
+      if (!input.reason) return NextResponse.json({ error: "Indica el motivo de la cancelación." }, { status: 400 });
+      if (current.paymentStatus !== "PENDING" || current.deliveryStatus === "OUT_FOR_DELIVERY") return NextResponse.json({ error: "No se cancela un pedido cobrado o en camino. Para un cobro usa el reembolso; para un reparto en camino registra una incidencia." }, { status: 409 });
+    }
     const driverPayment = input.status === "PAID" && canDriverCollectPayment(current, session, input.paymentMethod);
     if (session.role === "DRIVER" && !driverPayment) return NextResponse.json({ error: "No tienes permiso para realizar esta operación." }, { status: 403 });
     if (current.mode === "DELIVERY" && input.status === "SERVED") return NextResponse.json({ error: "Confirma la entrega desde la sección Repartos." }, { status: 409 });
@@ -45,6 +51,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         where: { id: orderId, status: current.status, version: input.version },
         data: {
           status: input.status,
+          ...(input.status === "CANCELLED" ? { cancellationReason: input.reason } : {}),
           paymentStatus: input.status === "PAID" ? "PAID" : current.paymentStatus,
           paymentMethod: input.status === "PAID" ? input.paymentMethod : current.paymentMethod,
           paidAt: input.status === "PAID" ? new Date() : current.paidAt,
@@ -57,11 +64,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       await transaction.orderStatusHistory.create({ data: { orderId, status: input.status, actor: session.email } });
       if (input.status === "PAID" && input.paymentMethod) {
         await transaction.paymentEvent.create({
-          data: { orderId, shiftId: openShift?.id, type: "PAYMENT", method: input.paymentMethod, amountCents: current.totalCents, actorUserId: session.id, actorName: staffDisplayName(session.name) },
+          data: { orderId, shiftId: openShift?.id, type: "PAYMENT", method: input.paymentMethod, amountCents: current.totalCents, actorUserId: session.id, actorName: staffDisplayName(session.name), cashCustody: input.paymentMethod === "CASH" ? (driverPayment ? "DRIVER" : "REGISTER") : null },
         });
       }
       await transaction.auditLog.create({
-        data: { actorUserId: session.id, actorName: staffDisplayName(session.name), action: input.status === "PAID" ? "ORDER_PAYMENT_RECORDED" : "ORDER_STATUS_CHANGED", entityType: "CustomerOrder", entityId: String(orderId), details: JSON.stringify({ from: current.status, to: input.status, paymentMethod: input.paymentMethod }) },
+        data: { actorUserId: session.id, actorName: staffDisplayName(session.name), action: input.status === "PAID" ? "ORDER_PAYMENT_RECORDED" : "ORDER_STATUS_CHANGED", entityType: "CustomerOrder", entityId: String(orderId), details: JSON.stringify({ from: current.status, to: input.status, paymentMethod: input.paymentMethod, reason: input.reason }) },
       });
       if (["PAID", "CANCELLED"].includes(input.status) && current.diningTableId) {
         const remaining = await transaction.customerOrder.count({ where: { diningTableId: current.diningTableId, id: { not: orderId }, status: { notIn: ["PAID", "CANCELLED"] } } });

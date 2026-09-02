@@ -2,7 +2,7 @@ import type { CashCollectionsView, CashShiftView } from "@/lib/domain";
 
 export const cashShift: CashShiftView = {
   id: "test-shift-01", businessDate: "2026-09-01", status: "OPEN", openingBalanceCents: 2000,
-  cashSalesCents: 3074, expectedCashCents: 5074, actualCashCents: null, discrepancyCents: null,
+  pendingDriverCashCents: 0, cashSalesCents: 3074, expectedCashCents: 5074, actualCashCents: null, discrepancyCents: null,
   openedByName: "Ana Cajera", closedByName: null, openedAt: "2026-09-02T03:00:00.000Z", closedAt: null,
 };
 

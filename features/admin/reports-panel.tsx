@@ -27,6 +27,8 @@ export function ReportsPanel() {
   const [report, setReport] = useState<RevenueReportView | null>(null);
   const [receipt, setReceipt] = useState<ReceiptView | null>(null);
   const [message, setMessage] = useState("");
+  const [correcting, setCorrecting] = useState(false);
+  const correctionInFlight = useRef(false);
   const latestRequest = useRef(0);
   const query = useMemo(() => new URLSearchParams(Object.entries(filters).filter(([, value]) => value)).toString(), [filters]);
 
@@ -48,20 +50,29 @@ export function ReportsPanel() {
     catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos abrir el comprobante."); }
   }
   async function refundPayment() {
-    if (!receipt) return;
+    if (!receipt || correctionInFlight.current) return;
     const amount = window.prompt("Valor a reembolsar en USD:");
     const reason = amount ? window.prompt("Motivo del reembolso (obligatorio):") : null;
     if (!amount || !reason) return;
-    try { await requestJson(`/api/admin/orders/${receipt.order.id}/refund`, "POST", { action: "REFUND", amountCents: Math.round(Number(amount) * 100), reason }); await openReceipt(receipt.order); await load(); setMessage("Reembolso registrado en la auditoría."); }
+    const amountCents = Math.round(Number(amount.replace(",", ".")) * 100);
+    if (!Number.isSafeInteger(amountCents) || amountCents <= 0 || reason.trim().length < 4) { setMessage("Indica un importe positivo y un motivo de al menos 4 caracteres."); return; }
+    if (!window.confirm(`¿Confirmas la devolución de ${formatPrice(amountCents)}? Este registro no transfiere dinero automáticamente.`)) return;
+    correctionInFlight.current = true; setCorrecting(true);
+    try { await requestJson(`/api/admin/orders/${receipt.order.id}/refund`, "POST", { action: "REFUND", version: receipt.order.version, amountCents, reason }); await openReceipt(receipt.order); await load(); setMessage("Reembolso registrado en la auditoría."); }
     catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos registrar el reembolso."); }
+    finally { correctionInFlight.current = false; setCorrecting(false); }
   }
   async function changePaymentMethod() {
-    if (!receipt) return;
+    if (!receipt || correctionInFlight.current) return;
     const paymentMethod = window.prompt("Nuevo método: CASH, CARD o TRANSFER")?.toUpperCase();
     const reason = paymentMethod ? window.prompt("Motivo de la corrección (obligatorio):") : null;
     if (!paymentMethod || !reason || !["CASH", "CARD", "TRANSFER"].includes(paymentMethod)) return;
-    try { await requestJson(`/api/admin/orders/${receipt.order.id}/refund`, "POST", { action: "CHANGE_METHOD", paymentMethod, reason }); await openReceipt(receipt.order); await load(); setMessage("Método de pago corregido."); }
+    const confirmedCashReceived = paymentMethod === "CASH" && window.confirm("¿Confirmas que el importe completo está físicamente en caja? No confirmes dinero que todavía tiene el repartidor.");
+    if (paymentMethod === "CASH" && !confirmedCashReceived) return;
+    correctionInFlight.current = true; setCorrecting(true);
+    try { await requestJson(`/api/admin/orders/${receipt.order.id}/refund`, "POST", { action: "CHANGE_METHOD", version: receipt.order.version, paymentMethod, reason, confirmedCashReceived }); await openReceipt(receipt.order); await load(); setMessage("Método de pago corregido."); }
     catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos corregir el pago."); }
+    finally { correctionInFlight.current = false; setCorrecting(false); }
   }
   function preset(from: string) { setStoredFilters((current) => ({ ...current, from, to: today })); setFollowToday(from === today); }
 
@@ -85,6 +96,6 @@ export function ReportsPanel() {
       </div>
     </section>
 
-    {receipt && <div className="admin-modal" role="dialog" aria-modal="true" aria-label="Comprobante de pedido"><article className="admin-modal__panel receipt-modal"><button className="admin-modal__close" onClick={() => setReceipt(null)} aria-label="Cerrar"><X /></button><ReceiptDocument receipt={receipt} /><div className="report-actions">{receipt.paymentEvents.some((event) => event.type === "PAYMENT") && <><button className="button button--line" onClick={refundPayment}>Reembolsar</button><button className="button button--line" onClick={changePaymentMethod}>Corregir método</button></>}<a className="button button--solid" href={`/admin/pedidos/${receipt.order.id}/comprobante`} target="_blank" rel="noopener noreferrer"><Printer />Imprimir comprobante</a></div></article></div>}
+    {receipt && <div className="admin-modal" role="dialog" aria-modal="true" aria-label="Comprobante de pedido"><article className="admin-modal__panel receipt-modal"><button className="admin-modal__close" onClick={() => setReceipt(null)} aria-label="Cerrar"><X /></button>{message && <p className="admin-inline-message" role="status">{message}</p>}<ReceiptDocument receipt={receipt} /><div className="report-actions">{receipt.paymentEvents.some((event) => event.type === "PAYMENT") && <><button className="button button--line" disabled={correcting} onClick={refundPayment}>Reembolsar</button><button className="button button--line" disabled={correcting} onClick={changePaymentMethod}>Corregir método</button></>}<a className="button button--solid" href={`/admin/pedidos/${receipt.order.id}/comprobante`} target="_blank" rel="noopener noreferrer"><Printer />Imprimir comprobante</a></div></article></div>}
   </div>;
 }

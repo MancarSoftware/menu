@@ -18,6 +18,8 @@ const modeLabel = (order: OrderView) => order.mode === "DINE_IN" ? `Mesa ${order
 export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initialOrders: OrderView[]; role: StaffRole; onPaymentRecorded?: () => void }) {
   const [orders, setOrders] = useState(initialOrders);
   const [message, setMessage] = useState("");
+  const [connectionError, setConnectionError] = useState("");
+  const mutating = useRef(false);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [paymentOrder, setPaymentOrder] = useState<OrderView | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
@@ -64,8 +66,8 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
       if (hasNew && soundEnabled) { try { await playAlarm(); } catch { setSoundEnabled(false); } }
       if (generation !== mutationGeneration.current) return;
       visible.forEach((order) => knownOrderIds.current.add(order.id));
-      setOrders(visible); setMessage("");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos actualizar los pedidos."); }
+      setOrders(visible); setConnectionError("");
+    } catch { setConnectionError("No pudimos actualizar. Los pedidos siguen guardados; los estados visibles pueden estar desactualizados."); }
     finally { refreshInFlight.current = false; }
   }, [playAlarm, soundEnabled]);
 
@@ -86,21 +88,27 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
   useEffect(() => { if (!message) return; const timeout = window.setTimeout(() => setMessage(""), 5000); return () => window.clearTimeout(timeout); }, [message]);
 
   async function advance(order: OrderView, status: OrderStatus, method?: PaymentMethod) {
+    if (mutating.current) return;
+    const reason = status === "CANCELLED" ? window.prompt("Motivo de cancelación (mínimo 4 caracteres). Solo cancela pedidos no cobrados.")?.trim() : undefined;
+    if (status === "CANCELLED" && !reason) return;
+    if (reason && (reason.length < 4 || reason.length > 240)) { setMessage("El motivo debe tener entre 4 y 240 caracteres."); return; }
+    mutating.current = true;
     mutationGeneration.current += 1;
     setPendingId(order.id); setMessage("");
     try {
-      const result = await requestJson<{ order: OrderView }>(`/api/admin/orders/${order.id}`, "PATCH", { status, version: order.version, ...(status === "PAID" ? { paymentMethod: method } : {}) });
+      const result = await requestJson<{ order: OrderView }>(`/api/admin/orders/${order.id}`, "PATCH", { status, version: order.version, ...(reason ? { reason } : {}), ...(status === "PAID" ? { paymentMethod: method } : {}) });
       mutationGeneration.current += 1;
       if (["PAID", "CANCELLED"].includes(result.order.status)) closedOrderIds.current.add(order.id);
       setOrders((current) => closedOrderIds.current.has(order.id) ? current.filter((candidate) => candidate.id !== order.id) : current.map((candidate) => candidate.id === order.id ? result.order : candidate));
       if (result.order.status === "PAID") { setPaymentOrder(null); onPaymentRecorded?.(); }
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos actualizar el pedido."); await refresh(); }
-    finally { setPendingId(null); }
+    finally { setPendingId(null); mutating.current = false; }
   }
 
   return <section className="kitchen-admin">
     <header className="kitchen-admin__header"><div><p className="eyebrow">Operación en vivo</p><h2>Pedidos de todos los canales</h2></div><div className="kitchen-alert-controls"><span><BellRing aria-hidden="true" /> Actualización cada 5 s</span><button type="button" data-active={soundEnabled} onClick={() => void toggleSound()}>{soundEnabled ? <Volume2 /> : <VolumeX />}{soundEnabled ? "Alarma activa" : "Activar alarma"}</button></div></header>
     {message && <p className="admin-inline-message" role="status">{message}</p>}
+    {connectionError && <p className="admin-inline-message" role="alert">{connectionError} <button type="button" className="button button--line" onClick={() => void refresh()}>Reintentar</button></p>}
     <div className="kitchen-columns">{columns.map((column) => {
       const columnOrders = orders.filter((order) => order.status === column.status);
       return <section className="kitchen-column" key={column.status} data-status={column.status}>
@@ -113,7 +121,7 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
             {order.mode === "DELIVERY" && order.status === "READY" && <p>{deliveryStatusLabel(order.deliveryStatus)} · Gestionar en Repartos</p>}
             <div className="kitchen-ticket__items">{order.items.map((item) => <div key={item.id}><span><b>{item.quantity}×</b> {item.productName}{item.customization.length > 0 && <small>{item.customization.join(" · ")}</small>}</span><strong>{formatPrice(item.lineTotalCents)}</strong></div>)}</div>
             {order.customerName && <p>{order.customerName} · {order.customerPhone}</p>}{order.deliveryAddress && <p>Entrega: {order.deliveryAddress}</p>}{order.notes && <p>Nota: {order.notes}</p>}
-            <footer>{action && (action.status !== "PAID" || ["ADMIN", "CASHIER"].includes(role)) && <button className="button button--solid" disabled={pendingId === order.id} onClick={() => action.status === "PAID" ? setPaymentOrder(order) : advance(order, action.status)}><ActionIcon aria-hidden="true" />{action.label}</button>}{["RECEIVED", "PREPARING"].includes(order.status) && <button className="icon-button icon-button--danger" disabled={pendingId === order.id} onClick={() => advance(order, "CANCELLED")} aria-label={`Cancelar pedido ${order.orderNumber}`}><Ban /></button>}</footer>
+            <footer>{action && (action.status !== "PAID" || ["ADMIN", "CASHIER"].includes(role)) && <button className="button button--solid" disabled={pendingId === order.id} onClick={() => action.status === "PAID" ? setPaymentOrder(order) : advance(order, action.status)}><ActionIcon aria-hidden="true" />{action.label}</button>}{["ADMIN", "CASHIER"].includes(role) && ["RECEIVED", "PREPARING", "READY"].includes(order.status) && order.paymentStatus === "PENDING" && order.deliveryStatus !== "OUT_FOR_DELIVERY" && <button className="icon-button icon-button--danger" disabled={pendingId === order.id} onClick={() => advance(order, "CANCELLED")} aria-label={`Cancelar pedido ${order.orderNumber}`}><Ban /></button>}</footer>
           </article>;
         }) : <p className="kitchen-empty">Sin pedidos aquí.</p>}</div>
       </section>;

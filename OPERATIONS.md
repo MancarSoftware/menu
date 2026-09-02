@@ -34,7 +34,7 @@ The unit/component tests in `tests/delivery*.test.ts` use mock location and data
 - Confirm collection twice/from two sessions: only one PaymentEvent should exist. Close a cash shift concurrently with a collection: either the payment is included in that closure or the payment is rejected and must be retried after opening a shift. A closed shift must not silently accept the late collection.
 - After collection, open Completadas, change dates, reload and switch account sections. Verify the delivery persists and other drivers cannot access its history or `/admin/pedidos/{id}/comprobante`.
 - Open a receipt from both Ventas and the driver view. Check the driver and collector names (including older payments stored with an email), full quantity totals, delivery charge, payment method, refund labels and PDF/print content. Disable browser headers/footers; test on the actual printer before rollout. Deleted legacy staff use a neutral label, never an email fallback.
-- Driver cash contributes to the shift's expected cash even if it is still physically with the driver. Collect that cash from the driver before reconciling the drawer. A separate driver-to-cashier handover ledger is not implemented by this update.
+- Driver cash contributes to the shift's expected cash even if it is still physically with the driver. The new **Efectivo de repartidores** ledger records physical receipt separately; the shift cannot close with new driver cash awaiting confirmation. Legacy payments are not automatically marked received.
 
 ## Cash collections: staging verification
 
@@ -55,8 +55,8 @@ This collection report uses existing tables; it adds no migration or environment
    `pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL" --file el-bueno-YYYY-MM-DD.dump`
 4. Store dumps encrypted outside the repository.
 5. Restore only into a new Neon branch first:
-   `pg_restore --clean --if-exists --no-owner --dbname "$RESTORE_DATABASE_URL" el-bueno-YYYY-MM-DD.dump`
-6. Point staging at the restored branch, run the smoke checklist, then promote or switch production only after verification.
+   `pg_restore --exit-on-error --no-owner --no-acl --dbname "$RESTORE_DATABASE_URL" el-bueno-YYYY-MM-DD.dump`
+6. Use an empty disposable database for restoration; do not add `--clean` against an existing database to work around errors. Confirm its resolved host/database is not production. Point staging at the restored database, run the smoke checklist and compare order/payment totals, then switch production only with owner approval.
 
 Perform a restore drill at least quarterly. A backup is not considered valid until it has been restored successfully.
 
@@ -74,7 +74,7 @@ Perform a restore drill at least quarterly. A backup is not considered valid unt
 3. Configure the custom domain in Vercel and update DNS at the registrar; keep HTTPS enforced.
 4. Print fresh QR cards only after the final domain is active. Existing QR URLs must never contain `localhost` or a preview deployment hostname.
 5. Verify table QR, delivery, pickup, kitchen, cash/card/transfer, refund, daily numbering, and reports on real phones.
-6. Open and close a test cash shift, then remove demo transactions before opening day.
+6. Open and close test shifts only in staging. Launch with an approved clean client database; never delete real transactions to remove test records.
 
 ## Staging reset
 

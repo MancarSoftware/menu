@@ -32,6 +32,8 @@ export function toOrderView(order: OrderWithDetails): OrderView {
     deliveryLatitude: order.deliveryLatitude,
     deliveryLongitude: order.deliveryLongitude,
     deliveryStatus: order.deliveryStatus as OrderView["deliveryStatus"],
+    deliveryIssue: order.deliveryIssue,
+    cancellationReason: order.cancellationReason,
     acknowledgedAt: order.acknowledgedAt?.toISOString() ?? null,
     version: order.version,
     createdAt: order.createdAt.toISOString(),

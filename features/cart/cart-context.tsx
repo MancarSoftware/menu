@@ -84,7 +84,7 @@ function isStoredActiveOrders(value: unknown): value is ActiveOrderSummary[] {
       && Number.isInteger(candidate.version) && Number(candidate.version) > 0
       && orderModes.includes(candidate.mode as OrderMode)
       && orderStatuses.includes(candidate.status as OrderStatus)
-      && (candidate.deliveryStatus === undefined || ["PENDING", "OUT_FOR_DELIVERY", "DELIVERED"].includes(candidate.deliveryStatus))
+      && (candidate.deliveryStatus === undefined || ["PENDING", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED"].includes(candidate.deliveryStatus))
       && typeof candidate.createdAt === "string" && Number.isFinite(Date.parse(candidate.createdAt))
       && (candidate.tableNumber === null || Number.isInteger(candidate.tableNumber));
   });
@@ -105,6 +105,7 @@ function toActiveOrderSummary(order: OrderView): ActiveOrderSummary {
 
 export function activeOrderStatusLabel(status: OrderStatus, mode?: OrderMode, deliveryStatus?: DeliveryStatus) {
   if (mode === "DELIVERY" && !["PAID", "CANCELLED"].includes(status)) {
+    if (deliveryStatus === "FAILED") return "Entrega en revisión";
     if (deliveryStatus === "OUT_FOR_DELIVERY") return "En camino";
     if (deliveryStatus === "DELIVERED" || status === "SERVED") return "Entregado";
   }

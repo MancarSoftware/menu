@@ -22,8 +22,8 @@ const fetchMock = vi.fn(async (url: string) => {
   if (url.includes("/reports/revenue")) return ok({ report: { revenueCents: 2898, refundsCents: 0, netRevenueCents: 2898, paymentCount: 1, points: [] } });
   return ok({ metrics: { date: "2026-09-02", revenueCents: 2898, paidOrderCount: 1 } });
 });
-beforeEach(() => { sessionStorage.clear(); vi.clearAllMocks(); logoutResponse = async () => ok({ ok: true }); vi.stubGlobal("fetch", fetchMock); });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+beforeEach(() => { document.body.insertAdjacentHTML("afterbegin", '<div id="admin-header-actions"></div>'); sessionStorage.clear(); vi.clearAllMocks(); logoutResponse = async () => ok({ ok: true }); vi.stubGlobal("fetch", fetchMock); });
+afterEach(() => { cleanup(); document.getElementById("admin-header-actions")?.remove(); vi.unstubAllGlobals(); });
 
 describe("admin mobile controls", () => {
   it("keeps logout outside the scrolling section menu and closes the session", async () => {
@@ -31,7 +31,7 @@ describe("admin mobile controls", () => {
     await act(async () => {});
     const logout = screen.getByRole("button", { name: "Cerrar sesión" });
     expect(logout.closest("nav")).toBeNull();
-    expect(logout.closest(".admin-sidebar__footer")).toBeTruthy();
+    expect(logout.closest("#admin-header-actions")).toBeTruthy();
     fireEvent.click(logout);
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/admin/login"));
     expect(fetchMock.mock.calls.filter(([url]) => url === "/api/auth/logout")).toHaveLength(1);

@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 
 test("homepage leads into the searchable fast-food menu", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Descubre nuestro menú" })).toBeVisible();
-  await page.getByRole("link", { name: "Ordenar ahora" }).click();
+  await expect(page.getByRole("heading", { name: /Hambre en serio/ })).toBeVisible();
+  await page.getByRole("link", { name: "Ver el menú", exact: true }).click();
   await expect(page).toHaveURL(/\/menu/);
   await expect(page.getByRole("heading", { name: "Menú" })).toBeVisible();
 
@@ -47,12 +47,23 @@ test("product details support keyboard focus and Escape", async ({ page }) => {
   await expect(firstProduct).toBeFocused();
 });
 
-test("customers can add an item and prepare a WhatsApp order", async ({ page }) => {
+test("customers can place a pickup order without location and recover it after navigation/reload", async ({ page }) => {
   await page.goto("/menu");
   await page.getByRole("button", { name: "Agregar Hamburguesa Clásica al carrito" }).click();
   await page.getByRole("link", { name: /Carrito/ }).click();
   await expect(page.getByRole("heading", { name: "Tu pedido" })).toBeVisible();
   await expect(page.getByText("Hamburguesa Clásica", { exact: true })).toBeVisible();
-  await page.getByLabel("Dirección de envío").fill("Calle Duarte 123");
-  await expect(page.getByRole("link", { name: "Ordenar por WhatsApp" })).toHaveAttribute("href", /wa\.me/);
+  await page.getByRole("button", { name: /Retiro.*Gratis/ }).click();
+  await page.getByLabel("Nombre", { exact: true }).fill("Cliente QA");
+  await page.getByLabel("Teléfono", { exact: true }).fill("0990000000");
+  await expect(page.getByLabel("Referencia de entrega (opcional)")).toHaveCount(0);
+  await page.getByRole("button", { name: /Confirmar pedido/ }).click();
+  await expect(page).toHaveURL(/\/pedido\//);
+  const orderUrl = page.url();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Tu pedido está en marcha" })).toBeVisible();
+  await page.getByRole("link", { name: "Pedir algo más", exact: true }).click();
+  await page.getByRole("link", { name: /Carrito/ }).click();
+  await expect(page.getByRole("heading", { name: "Tus pedidos siguen aquí" })).toBeVisible();
+  await expect(page.locator(`.cart-saved-orders a[href="${new URL(orderUrl).pathname}"]`)).toBeVisible();
 });

@@ -8,7 +8,7 @@ import { PATCH as closeShift } from "@/app/api/admin/cash-shifts/[id]/route";
 const mocks = vi.hoisted(() => ({
   role: "ADMIN",
   db: {
-    paymentEvent: { groupBy: vi.fn(), findMany: vi.fn() },
+    paymentEvent: { aggregate: vi.fn(), groupBy: vi.fn(), findMany: vi.fn() },
     adminUser: { findMany: vi.fn() },
     cashRegisterShift: { findMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), updateMany: vi.fn() },
     auditLog: { create: vi.fn() },
@@ -27,7 +27,7 @@ const records = [event("cash1", "CASH", 1574), event("local1", "CASH", 2000), ev
 const request = (query = "date=2026-09-02") => new NextRequest(`http://localhost/api/admin/cash-collections?${query}`);
 
 beforeEach(() => {
-  vi.clearAllMocks(); mocks.role = "ADMIN";
+  vi.clearAllMocks(); mocks.role = "ADMIN"; mocks.db.paymentEvent.aggregate.mockResolvedValue({ _sum: { amountCents: 0 } });
   mocks.db.$transaction.mockImplementation(async (run: (db: typeof mocks.db) => unknown) => run(mocks.db));
   mocks.db.paymentEvent.groupBy.mockResolvedValue(records.map((row) => ({ type: row.type, method: row.method, _sum: { amountCents: row.amountCents }, _count: { _all: 1 } })));
   mocks.db.paymentEvent.findMany.mockResolvedValue(records);

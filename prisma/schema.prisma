@@ -98,6 +98,8 @@ model CustomerOrder {
   deliveryLatitude Float?
   deliveryLongitude Float?
   deliveryStatus String @default("PENDING")
+  deliveryIssue String?
+  cancellationReason String?
   assignedDriverId String?
   assignedDriver AdminUser? @relation(fields: [assignedDriverId], references: [id], onDelete: SetNull)
   dispatchedAt DateTime?
@@ -175,11 +177,28 @@ model PaymentEvent {
   reason      String             @default("")
   actorUserId String?
   actorName   String
+  cashCustody String?
+  handover    DriverCashHandover?
   createdAt   DateTime           @default(now())
 
   @@index([orderId, createdAt])
   @@index([shiftId, method, createdAt])
   @@index([type, createdAt])
+  @@index([cashCustody, shiftId])
+}
+
+model DriverCashHandover {
+  id             String       @id @default(cuid())
+  paymentEventId String       @unique
+  paymentEvent   PaymentEvent @relation(fields: [paymentEventId], references: [id], onDelete: Cascade)
+  driverId       String
+  driverName     String
+  receivedById   String
+  receivedByName String
+  amountCents    Int
+  createdAt      DateTime     @default(now())
+
+  @@index([driverId, createdAt])
 }
 
 model CashRegisterShift {

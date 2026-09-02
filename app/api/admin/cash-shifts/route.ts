@@ -4,13 +4,16 @@ import { assertSameOrigin, apiError } from "@/lib/api";
 import { requireRoleApi } from "@/lib/auth";
 import { getBusinessDate } from "@/lib/business-date";
 import { db } from "@/lib/db";
+import { pendingDriverCashCents } from "@/lib/cash-handover";
 
 const openSchema = z.object({ openingBalanceCents: z.number().int().min(0).max(100_000_000), notes: z.string().trim().max(500).default("") });
 
 async function shiftView(shift: { id: string; businessDate: string; status: string; openingBalanceCents: number; actualCashCents: number | null; discrepancyCents: number | null; openedByName: string; closedByName: string | null; openedAt: Date; closedAt: Date | null }) {
   const totals = await db.paymentEvent.groupBy({ by: ["type"], where: { shiftId: shift.id, method: "CASH" }, _sum: { amountCents: true } });
   const cashSalesCents = (totals.find((row) => row.type === "PAYMENT")?._sum.amountCents ?? 0) - (totals.find((row) => row.type === "REFUND")?._sum.amountCents ?? 0);
-  return { ...shift, status: shift.status as "OPEN" | "CLOSED", cashSalesCents, expectedCashCents: shift.openingBalanceCents + cashSalesCents, openedAt: shift.openedAt.toISOString(), closedAt: shift.closedAt?.toISOString() ?? null };
+  // Closing already requires zero pending cash; avoid an extra query per historical shift.
+  const pendingCashCents = shift.status === "OPEN" ? await pendingDriverCashCents(db, shift.id) : 0;
+  return { ...shift, status: shift.status as "OPEN" | "CLOSED", cashSalesCents, pendingDriverCashCents: pendingCashCents, expectedCashCents: shift.openingBalanceCents + cashSalesCents, openedAt: shift.openedAt.toISOString(), closedAt: shift.closedAt?.toISOString() ?? null };
 }
 
 export async function GET() {

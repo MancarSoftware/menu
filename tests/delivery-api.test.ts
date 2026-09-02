@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
     cashRegisterShift: { findFirst: vi.fn(), findMany: vi.fn() },
     orderStatusHistory: { create: vi.fn() },
     auditLog: { create: vi.fn() },
-    paymentEvent: { create: vi.fn(), groupBy: vi.fn() },
+    paymentEvent: { aggregate: vi.fn(), create: vi.fn(), groupBy: vi.fn() },
     $queryRaw: vi.fn(), $transaction: vi.fn(),
   },
 }));
@@ -28,7 +28,7 @@ const request = (body: unknown) => new NextRequest("http://localhost:3000/api/ad
 const context = { params: Promise.resolve({ id: "4" }) };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.clearAllMocks(); mocks.db.paymentEvent.aggregate.mockResolvedValue({ _sum: { amountCents: 0 } });
   Object.assign(mocks.session, { id: "driver1", role: "DRIVER", canCollectCash: false, canCollectCard: false, canCollectTransfer: false });
   mocks.db.customerOrder.findMany.mockResolvedValue([]);
   mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue(current);
@@ -39,6 +39,42 @@ beforeEach(() => {
 });
 
 describe("delivery API boundaries (database mocked)", () => {
+  it("rejects a supplied future version rather than authorizing from an older snapshot", async () => {
+    expect((await PATCH(request({ action: "DISPATCH", version: 4 }), context)).status).toBe(409);
+    mocks.session.role = "ADMIN";
+    expect((await payOrder(request({ status: "CANCELLED", version: 4, reason: "Cliente canceló" }), context)).status).toBe(409);
+    expect(mocks.db.customerOrder.updateMany).not.toHaveBeenCalled();
+  });
+  it("records failed delivery with a required reason, retains the order and does not collect", async () => {
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, deliveryStatus: "OUT_FOR_DELIVERY" });
+    expect((await PATCH(request({ action: "REPORT_ISSUE", version: 3 }), context)).status).toBe(400);
+    expect((await PATCH(request({ action: "REPORT_ISSUE", version: 3, reason: "Cliente no responde" }), context)).status).toBe(200);
+    expect(mocks.db.customerOrder.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { deliveryStatus: "FAILED", deliveryIssue: "Cliente no responde", version: { increment: 1 } } }));
+    expect(mocks.db.paymentEvent.create).not.toHaveBeenCalled();
+  });
+  it("requires a manager to retry a failed delivery; the driver cannot bypass review", async () => {
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, deliveryStatus: "FAILED" });
+    expect((await PATCH(request({ action: "DISPATCH", version: 3 }), context)).status).toBe(409);
+    expect((await PATCH(request({ action: "DELIVER", version: 3 }), context)).status).toBe(409);
+    expect((await PATCH(request({ action: "RETRY", version: 3, reason: "Cliente confirmó punto" }), context)).status).toBe(409);
+    mocks.session.role = "CASHIER";
+    expect((await PATCH(request({ action: "RETRY", version: 3, reason: "Cliente confirmó punto" }), context)).status).toBe(200);
+    expect(mocks.db.customerOrder.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { deliveryStatus: "PENDING", deliveryIssue: null, dispatchedAt: null, version: { increment: 1 } } }));
+  });
+  it("restricts cancellation to managers with a reason and unpaid orders not en route", async () => {
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, paymentStatus: "PENDING" });
+    mocks.session.role = "KITCHEN";
+    expect((await payOrder(request({ status: "CANCELLED", version: 3, reason: "Cliente canceló" }), context)).status).toBe(403);
+    mocks.session.role = "ADMIN";
+    expect((await payOrder(request({ status: "CANCELLED", version: 3 }), context)).status).toBe(400);
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, paymentStatus: "PENDING", deliveryStatus: "OUT_FOR_DELIVERY" });
+    expect((await payOrder(request({ status: "CANCELLED", version: 3, reason: "Cliente canceló" }), context)).status).toBe(409);
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, paymentStatus: "PAID" });
+    expect((await payOrder(request({ status: "CANCELLED", version: 3, reason: "Cliente canceló" }), context)).status).toBe(409);
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, paymentStatus: "PENDING", deliveryStatus: "FAILED" });
+    expect((await payOrder(request({ status: "CANCELLED", version: 3, reason: "Cliente canceló" }), context)).status).toBe(200);
+    expect(mocks.db.customerOrder.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "CANCELLED", cancellationReason: "Cliente canceló" }) }));
+  });
   it("only queries the driver's own active delivery orders", async () => {
     const response = await GET();
     expect(response.status).toBe(200);
