@@ -9,6 +9,18 @@ Este sistema atiende un solo restaurante. Cada persona usa su propia cuenta en `
 3. Cocina abre **Cocina**, pulsa **Activar alarma** y comprueba el volumen. El navegador exige esta interacción; no confíes solo en el sonido.
 4. Repartidores abren **Mis entregas**. Verifican conexión, batería y acceso al mapa.
 
+## Configurar tamaños, extras y opciones del producto
+
+En **Productos → Nuevo o Editar → Personalización del producto**, debajo de Ingredientes:
+
+- **Tamaños:** nombre y recargo por unidad. El primero es el predeterminado, incluido en el precio base (recargo $0). Deja el grupo vacío para vender sin tamaños.
+- **Extras:** ingredientes adicionales y su recargo. Configura cuántos se pueden elegir por unidad. Un máximo de 0 los oculta.
+- **Salsas:** nombres y máximo de selecciones. Se incluyen sin recargo; una salsa con costo se configura como extra.
+- **Ingredientes que se pueden quitar:** marca los ingredientes permitidos; no se seleccionan automáticamente. Quitarlos no rebaja el precio. Si eliminas o renombras un ingrediente en el campo superior, vuelve a revisar estas casillas.
+- Guarda con **Guardar producto** o **Publicar producto**. No se permiten nombres repetidos dentro de un grupo ni recargos negativos.
+
+Los productos anteriores conservan sus opciones hasta editarlos; al guardar, quedan configuradas para ese producto, independientemente de su categoría. Los nuevos empiezan sin opciones. Los pedidos enviados conservan precios y detalles. Si una opción se elimina mientras el cliente tiene un carrito pendiente, el sistema le pedirá retirar ese producto y volver a añadirlo desde el menú.
+
 ## Pedidos de mesa, retiro y delivery
 
 - **Mesa:** el cliente escanea el QR de su mesa, arma el carrito y confirma. Cocina empieza el pedido, lo marca listo y el personal confirma la entrega. Caja registra el pago; la mesa se libera cuando no quedan pedidos pendientes.

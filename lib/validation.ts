@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { productOptionsSchema } from "./product-customization";
 
 const stringList = z.array(z.string().trim().min(1).max(80)).max(20).default([]);
 
@@ -24,8 +25,13 @@ export const menuItemSchema = z.object({
   displayOrder: z.number().int().min(0).max(9999),
   dietaryTags: stringList,
   ingredients: stringList,
+  customizationOptions: productOptionsSchema.nullable().optional(),
   allergens: stringList,
   spicyLevel: z.number().int().min(0).max(3).nullable(),
+}).superRefine((item, context) => {
+  if (item.customizationOptions?.removableIngredients.some((ingredient) => !item.ingredients.includes(ingredient))) {
+    context.addIssue({ code: "custom", path: ["customizationOptions", "removableIngredients"], message: "Solo se pueden quitar ingredientes incluidos en este producto." });
+  }
 });
 
 export const restaurantSchema = z.object({
@@ -72,7 +78,7 @@ export const dineInOrderSchema = z.object({
   items: z.array(z.object({
     productId: z.string().min(1),
     quantity: z.number().int().min(1).max(20),
-    customizationKey: z.string().max(1000).default("standard"),
+    customizationKey: z.string().max(10000).default("standard"),
   })).min(1).max(40),
 });
 

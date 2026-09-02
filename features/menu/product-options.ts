@@ -1,23 +1,19 @@
 import type { MenuItemView } from "@/lib/domain";
+import type { PricedOption, ProductOptions } from "@/lib/product-customization";
 
-export type PricedOption = {
-  id: string;
-  label: string;
-  priceCents: number;
-};
-
-export type ProductOptions = {
-  portions: PricedOption[];
-  extras: PricedOption[];
-  sauces: string[];
-  removableIngredients: string[];
-};
+export type { PricedOption, ProductOptions } from "@/lib/product-customization";
 
 const commonSauces = ["Salsa de la casa", "BBQ", "Mayonesa de ajo", "Ají criollo"];
 
-type ConfigurableProduct = Pick<MenuItemView, "categorySlug" | "ingredients">;
+type ConfigurableProduct = Pick<MenuItemView, "categorySlug" | "ingredients" | "customizationOptions">;
 
 export function getProductOptions(item: ConfigurableProduct): ProductOptions {
+  if (item.customizationOptions != null) return item.customizationOptions;
+  const legacy = getLegacyProductOptions(item);
+  return { ...legacy, maxExtras: 20, maxSauces: 2 };
+}
+
+function getLegacyProductOptions(item: ConfigurableProduct): Omit<ProductOptions, "maxExtras" | "maxSauces"> {
   const removableIngredients = item.ingredients.filter((ingredient) =>
     !/carne|pollo|masa|agua|hielo|refresco|pizza|hamburguesa|papas/i.test(ingredient),
   );
@@ -82,31 +78,49 @@ export function getProductOptions(item: ConfigurableProduct): ProductOptions {
   };
 }
 
-export function resolveProductCustomization(item: ConfigurableProduct, key: string) {
-  if (key === "standard") return { labels: [] as string[], extraPriceCents: 0 };
+export function createCustomizationKey(portionId: string, extras: string[], sauces: string[], removedIngredients: string[]) {
+  // JSON preserves names containing + or |; old cart keys remain readable below.
+  return `v2:${JSON.stringify([portionId, [...extras].sort(), [...sauces].sort(), [...removedIngredients].sort()])}`;
+}
+
+function readCustomizationKey(key: string): [string, string[], string[], string[]] | null {
+  if (key.startsWith("v2:")) {
+    try {
+      const value: unknown = JSON.parse(key.slice(3));
+      if (!Array.isArray(value) || value.length !== 4 || typeof value[0] !== "string") return null;
+      const [portion, ...groups] = value;
+      if (!groups.every((group) => Array.isArray(group) && group.length <= 20 && group.every((entry) => typeof entry === "string" && entry.length <= 80))) return null;
+      return [portion, groups[0], groups[1], groups[2]];
+    } catch { return null; }
+  }
   const parts = key.split("|");
   if (parts.length !== 4) return null;
-  const [portionId, extraValue, sauceValue, removedValue] = parts;
-  const extraIds = extraValue.split("+").filter(Boolean);
-  const sauces = sauceValue.split("+").filter(Boolean);
-  const removedIngredients = removedValue.split("+").filter(Boolean);
+  return [parts[0], ...parts.slice(1).map((part) => part.split("+").filter(Boolean))] as [string, string[], string[], string[]];
+}
+
+export function resolveProductCustomization(item: ConfigurableProduct, key: string) {
+  if (key === "standard") return { labels: [] as string[], extraPriceCents: 0 };
+  const selection = readCustomizationKey(key);
+  if (!selection) return null;
+  const [portionId, extraIds, sauces, removedIngredients] = selection;
   const options = getProductOptions(item);
   const portion = options.portions.find((option) => option.id === portionId);
   const extras = extraIds.map((id) => options.extras.find((option) => option.id === id));
 
-  if (!portion || extras.some((option) => !option)) return null;
+  if ((options.portions.length ? !portion : portionId !== "") || extras.some((option) => !option)) return null;
+  if (extraIds.length > options.maxExtras) return null;
   if (new Set(extraIds).size !== extraIds.length || new Set(sauces).size !== sauces.length || new Set(removedIngredients).size !== removedIngredients.length) return null;
-  if (sauces.length > 2 || sauces.some((sauce) => !options.sauces.includes(sauce))) return null;
+  if (sauces.length > options.maxSauces || sauces.some((sauce) => !options.sauces.includes(sauce))) return null;
   if (removedIngredients.some((ingredient) => !options.removableIngredients.includes(ingredient))) return null;
 
   const selectedExtras = extras.filter((option): option is PricedOption => Boolean(option));
   return {
     labels: [
-      `Tamaño: ${portion.label}`,
+      portion ? `Tamaño: ${portion.label}` : "",
       selectedExtras.length ? `Extras: ${selectedExtras.map((option) => option.label).join(", ")}` : "",
       sauces.length ? `Salsas: ${sauces.join(", ")}` : "",
       removedIngredients.length ? `Sin: ${removedIngredients.join(", ")}` : "",
     ].filter(Boolean),
-    extraPriceCents: portion.priceCents + selectedExtras.reduce((total, option) => total + option.priceCents, 0),
+    extraPriceCents: (portion?.priceCents ?? 0) + selectedExtras.reduce((total, option) => total + option.priceCents, 0),
   };
 }

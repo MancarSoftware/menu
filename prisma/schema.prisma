@@ -54,6 +54,7 @@ model MenuItem {
   displayOrder         Int          @default(0)
   dietaryTags          String       @default("[]")
   ingredients          String       @default("[]")
+  customizationOptions String?
   allergens            String       @default("[]")
   spicyLevel           Int?
   categoryId           String

@@ -17,6 +17,9 @@ import { StaffManager } from "./staff-manager";
 import { DeliveryBoard } from "./delivery-board";
 import { useBusinessToday } from "./use-business-today";
 import { useLiveRefresh } from "./use-live-refresh";
+import { getProductOptions } from "@/features/menu/product-options";
+import { emptyProductOptions, productOptionsSchema } from "@/lib/product-customization";
+import { ProductCustomizationEditor, toOptionsDraft, fromOptionsDraft, type ProductOptionsDraft } from "./product-customization-editor";
 
 type Tab = "overview" | "orders" | "deliveries" | "reports" | "cash" | "tables" | "categories" | "items" | "restaurant" | "staff";
 type Notice = { kind: "success" | "error"; message: string } | null;
@@ -175,8 +178,8 @@ function CategoryManager({ categories, run }: { categories: MenuCategoryView[]; 
   );
 }
 
-type ItemForm = { name: string; slug: string; shortDescription: string; description: string; price: string; imageUrl: string; categoryId: string; isAvailable: boolean; isFeatured: boolean; isChefRecommendation: boolean; displayOrder: number; dietaryTags: string; ingredients: string; allergens: string; spicyLevel: string };
-function emptyItem(categories: MenuCategoryView[]): ItemForm { return { name: "", slug: "", shortDescription: "", description: "", price: "", imageUrl: "/images/fast-food/burger-classic.webp", categoryId: categories[0]?.id ?? "", isAvailable: true, isFeatured: false, isChefRecommendation: false, displayOrder: 0, dietaryTags: "", ingredients: "", allergens: "", spicyLevel: "" }; }
+type ItemForm = { name: string; slug: string; shortDescription: string; description: string; price: string; imageUrl: string; categoryId: string; isAvailable: boolean; isFeatured: boolean; isChefRecommendation: boolean; displayOrder: number; dietaryTags: string; ingredients: string; allergens: string; spicyLevel: string; customizationOptions: ProductOptionsDraft };
+function emptyItem(categories: MenuCategoryView[]): ItemForm { return { name: "", slug: "", shortDescription: "", description: "", price: "", imageUrl: "/images/fast-food/burger-classic.webp", categoryId: categories[0]?.id ?? "", isAvailable: true, isFeatured: false, isChefRecommendation: false, displayOrder: 0, dietaryTags: "", ingredients: "", allergens: "", spicyLevel: "", customizationOptions: toOptionsDraft(emptyProductOptions()) }; }
 function list(value: string) { return value.split(",").map((item) => item.trim()).filter(Boolean); }
 
 function ItemManager({ categories, run }: { categories: MenuCategoryView[]; run: (action: () => Promise<void>, success: string) => Promise<void> }) {
@@ -187,12 +190,29 @@ function ItemManager({ categories, run }: { categories: MenuCategoryView[]; run:
   const [form, setForm] = useState<ItemForm>(() => emptyItem(categories));
   const [pending, setPending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [customizationError, setCustomizationError] = useState<string | null>(null);
   const visible = allItems.filter((item) => (categoryFilter === "all" || item.categoryId === categoryFilter) && `${item.name} ${item.shortDescription}`.toLowerCase().includes(query.toLowerCase()));
 
-  function reset() { setEditingId(null); setForm(emptyItem(categories)); }
-  function edit(item: MenuItemView) { setEditingId(item.id); setForm({ name: item.name, slug: item.slug, shortDescription: item.shortDescription, description: item.description, price: (item.priceCents / 100).toFixed(2), imageUrl: item.imageUrl, categoryId: item.categoryId, isAvailable: item.isAvailable, isFeatured: item.isFeatured, isChefRecommendation: item.isChefRecommendation, displayOrder: item.displayOrder, dietaryTags: item.dietaryTags.join(", "), ingredients: item.ingredients.join(", "), allergens: item.allergens.join(", "), spicyLevel: item.spicyLevel === null ? "" : String(item.spicyLevel) }); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  function payload() { return { name: form.name, slug: form.slug, shortDescription: form.shortDescription, description: form.description, priceCents: Math.round(Number(form.price) * 100), imageUrl: form.imageUrl, categoryId: form.categoryId, isAvailable: form.isAvailable, isFeatured: form.isFeatured, isChefRecommendation: form.isChefRecommendation, displayOrder: form.displayOrder, dietaryTags: list(form.dietaryTags), ingredients: list(form.ingredients), allergens: list(form.allergens), spicyLevel: form.spicyLevel === "" ? null : Number(form.spicyLevel) }; }
-  async function submit(event: React.FormEvent) { event.preventDefault(); setPending(true); try { await run(() => requestJson(editingId ? `/api/items/${editingId}` : "/api/items", editingId ? "PATCH" : "POST", payload()).then(() => undefined), editingId ? "Producto actualizado y publicado." : "Producto creado y publicado."); reset(); } finally { setPending(false); } }
+  function reset() { setEditingId(null); setCustomizationError(null); setForm(emptyItem(categories)); }
+  function edit(item: MenuItemView) { setEditingId(item.id); setCustomizationError(null); setForm({ name: item.name, slug: item.slug, shortDescription: item.shortDescription, description: item.description, price: (item.priceCents / 100).toFixed(2), imageUrl: item.imageUrl, categoryId: item.categoryId, isAvailable: item.isAvailable, isFeatured: item.isFeatured, isChefRecommendation: item.isChefRecommendation, displayOrder: item.displayOrder, dietaryTags: item.dietaryTags.join(", "), ingredients: item.ingredients.join(", "), allergens: item.allergens.join(", "), spicyLevel: item.spicyLevel === null ? "" : String(item.spicyLevel), customizationOptions: toOptionsDraft(getProductOptions(item)) }); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function payload() { return { name: form.name, slug: form.slug, shortDescription: form.shortDescription, description: form.description, priceCents: Math.round(Number(form.price) * 100), imageUrl: form.imageUrl, categoryId: form.categoryId, isAvailable: form.isAvailable, isFeatured: form.isFeatured, isChefRecommendation: form.isChefRecommendation, displayOrder: form.displayOrder, dietaryTags: list(form.dietaryTags), ingredients: list(form.ingredients), allergens: list(form.allergens), spicyLevel: form.spicyLevel === "" ? null : Number(form.spicyLevel), customizationOptions: fromOptionsDraft(form.customizationOptions) }; }
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending || uploading) return;
+    const validated = productOptionsSchema.safeParse(fromOptionsDraft(form.customizationOptions));
+    if (!validated.success) {
+      setCustomizationError(validated.error.issues[0].message);
+      event.currentTarget.querySelector(".customization-editor")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setCustomizationError(null);
+    setPending(true);
+    try {
+      await run(() => requestJson(editingId ? `/api/items/${editingId}` : "/api/items", editingId ? "PATCH" : "POST", { ...payload(), customizationOptions: validated.data }).then(() => undefined), editingId ? "Producto actualizado y publicado." : "Producto creado y publicado.");
+      reset();
+    } catch { /* Keep the draft; run displays the server error and handles expired sessions. */ }
+    finally { setPending(false); }
+  }
   async function remove(item: MenuItemView) { if (!window.confirm(`¿Eliminar “${item.name}”? Esta acción no se puede deshacer.`)) return; await run(() => requestJson(`/api/items/${item.id}`, "DELETE").then(() => undefined), "Producto eliminado."); if (editingId === item.id) reset(); }
   async function toggle(item: MenuItemView) { await run(() => requestJson(`/api/items/${item.id}`, "PATCH", { ...item, categoryName: undefined, categorySlug: undefined, priceCents: item.priceCents, dietaryTags: item.dietaryTags, ingredients: item.ingredients, allergens: item.allergens, isAvailable: !item.isAvailable }).then(() => undefined), item.isAvailable ? "Producto marcado como no disponible." : "Producto disponible nuevamente."); }
   async function move(item: MenuItemView, direction: -1 | 1) { const group = categories.find((category) => category.id === item.categoryId)?.items ?? []; const index = group.findIndex((candidate) => candidate.id === item.id); const next = index + direction; if (next < 0 || next >= group.length) return; const ids = group.map((candidate) => candidate.id); [ids[index], ids[next]] = [ids[next], ids[index]]; await run(() => requestJson("/api/items/reorder", "PATCH", { ids }).then(() => undefined), "Orden de productos actualizado."); }
@@ -216,7 +236,8 @@ function ItemManager({ categories, run }: { categories: MenuCategoryView[]; run:
         </div>
         <div className="form-field"><label htmlFor="item-short">Descripción breve</label><input id="item-short" value={form.shortDescription} onChange={(e) => setForm({ ...form, shortDescription: e.target.value })} required maxLength={180} /></div>
         <div className="form-field"><label htmlFor="item-description">Descripción completa</label><textarea id="item-description" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required /></div>
-        <div className="form-field"><label htmlFor="item-ingredients">Ingredientes <small>separados por coma</small></label><input id="item-ingredients" value={form.ingredients} onChange={(e) => setForm({ ...form, ingredients: e.target.value })} /></div>
+        <div className="form-field"><label htmlFor="item-ingredients">Ingredientes <small>separados por coma</small></label><input id="item-ingredients" value={form.ingredients} onChange={(e) => setForm({ ...form, ingredients: e.target.value, customizationOptions: { ...form.customizationOptions, removableIngredients: form.customizationOptions.removableIngredients.filter((ingredient) => list(e.target.value).includes(ingredient)) } })} /></div>
+        <ProductCustomizationEditor value={form.customizationOptions} ingredients={list(form.ingredients)} disabled={pending} error={customizationError} onChange={(customizationOptions) => { setCustomizationError(null); setForm({ ...form, customizationOptions }); }} />
         <div className="form-grid">
           <div className="form-field"><label htmlFor="item-tags">Etiquetas dietarias</label><input id="item-tags" value={form.dietaryTags} onChange={(e) => setForm({ ...form, dietaryTags: e.target.value })} placeholder="Vegano, Sin gluten" /></div>
           <div className="form-field"><label htmlFor="item-allergens">Alérgenos</label><input id="item-allergens" value={form.allergens} onChange={(e) => setForm({ ...form, allergens: e.target.value })} placeholder="Lácteos, Frutos secos" /></div>

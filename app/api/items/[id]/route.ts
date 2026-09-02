@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, context: Context) {
     if (!assertSameOrigin(request)) return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
     const { id } = await context.params;
     const input = menuItemSchema.parse(await request.json());
-    const item = await db.menuItem.update({ where: { id }, data: { ...input, dietaryTags: JSON.stringify(input.dietaryTags), ingredients: JSON.stringify(input.ingredients), allergens: JSON.stringify(input.allergens) }, include: { category: { select: { name: true, slug: true } } } });
+    const item = await db.menuItem.update({ where: { id }, data: { ...input, customizationOptions: input.customizationOptions === undefined ? undefined : input.customizationOptions === null ? null : JSON.stringify(input.customizationOptions), dietaryTags: JSON.stringify(input.dietaryTags), ingredients: JSON.stringify(input.ingredients), allergens: JSON.stringify(input.allergens) }, include: { category: { select: { name: true, slug: true } } } });
     revalidatePath("/"); revalidatePath("/menu"); revalidatePath("/admin");
     return NextResponse.json({ item: toMenuItemView(item) });
   } catch (error) { return apiError(error); }

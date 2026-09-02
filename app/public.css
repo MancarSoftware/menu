@@ -216,18 +216,21 @@
 .product-option[data-selected="true"] { background: var(--fast-yellow); box-shadow: 3px 3px 0 var(--fast-ink); transform: translate(-1px,-1px); }
 .product-option input, .product-check input { flex: 0 0 auto; accent-color: var(--fast-orange); }
 .product-option > span { min-width: 0; display: grid; gap: .1rem; }
-.product-option strong { overflow: hidden; font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
+.product-option strong { font-size: .68rem; overflow-wrap: anywhere; }
 .product-option small { color: var(--fast-muted); font-size: .58rem; }
 .product-option-list { border-top: 2px solid var(--fast-ink); }
 .product-check { min-height: 42px; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: .5rem; align-items: center; border-bottom: 1px solid var(--fast-ink); cursor: pointer; }
 .product-check span, .product-check strong { font-size: .66rem; }
+.product-check span { overflow-wrap: anywhere; }
 .product-check strong { color: var(--fast-orange); }
+.product-check:has(input:disabled) { opacity: .55; cursor: not-allowed; }
 .product-option-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
-.product-option-chips label { min-height: 34px; padding: .4rem .55rem; display: inline-flex; align-items: center; border: 1px solid var(--fast-ink); background: #fff; color: var(--fast-ink); cursor: pointer; }
+.product-option-chips label { position: relative; min-height: 44px; max-width: 100%; padding: .4rem .55rem; display: inline-flex; align-items: center; border: 2px solid var(--fast-ink); background: #fff; color: var(--fast-ink); cursor: pointer; }
 .product-option-chips label[data-selected="true"] { border-width: 2px; background: var(--fast-ink); color: #fff; }
 .product-option-chips label:has(input:disabled) { opacity: .4; cursor: not-allowed; }
-.product-option-chips input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
-.product-option-chips span { font-size: .62rem; }
+.product-option-chips input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
+.product-option-chips label:has(input:focus-visible) { outline: 3px solid var(--fast-orange); outline-offset: 3px; }
+.product-option-chips span { min-width: 0; font-size: .62rem; overflow-wrap: anywhere; }
 .product-option-chips--remove label[data-selected="true"] { background: var(--fast-orange); }
 .product-dialog__quantity { min-height: 60px; display: flex; align-items: center; justify-content: space-between; }
 .product-dialog__quantity > div { display: flex; align-items: center; gap: .4rem; }

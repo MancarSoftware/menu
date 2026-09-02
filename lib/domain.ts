@@ -1,3 +1,5 @@
+import type { ProductOptions } from "./product-customization";
+
 export type OpeningHour = { days: string; hours: string };
 export type SocialLinks = { instagram?: string; facebook?: string; tiktok?: string };
 
@@ -32,6 +34,7 @@ export type MenuItemView = {
   displayOrder: number;
   dietaryTags: string[];
   ingredients: string[];
+  customizationOptions?: ProductOptions | null;
   allergens: string[];
   spicyLevel: number | null;
   categoryId: string;

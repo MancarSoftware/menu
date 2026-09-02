@@ -1,4 +1,5 @@
 import type { MenuItem, MenuCategory, Restaurant } from "@prisma/client";
+import { parseProductOptions } from "./product-customization";
 import type { MenuCategoryView, MenuItemView, OpeningHour, RestaurantView, SocialLinks } from "./domain";
 
 export function parseArray(value: string): string[] {
@@ -44,6 +45,7 @@ export function toMenuItemView(item: ItemWithCategory): MenuItemView {
     displayOrder: item.displayOrder,
     dietaryTags: parseArray(item.dietaryTags),
     ingredients: parseArray(item.ingredients),
+    customizationOptions: parseProductOptions(item.customizationOptions),
     allergens: parseArray(item.allergens),
     spicyLevel: item.spicyLevel,
     categoryId: item.categoryId,

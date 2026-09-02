@@ -14,6 +14,16 @@ The Vercel build command is `npm run build`. It generates Prisma Client, runs pe
 
 Local compilation uses `npm run build:local` so a developer does not accidentally migrate the database referenced by the local `.env`.
 
+## Product customization: staging verification
+
+- Deploy `20260902190000_product_customization` through the staging build before using this version. It adds nullable `MenuItem.customizationOptions` text containing a runtime-validated JSON document; null retains legacy category defaults. Do not apply it through a production-backed local `.env`.
+- In **Productos**, open an existing product and verify its previous sizes, extras, sauces and removals are prefilled. Save changes, reload the page and reopen the product to verify persistence. Create a new product and confirm it starts without category-injected options.
+- Configure size surcharges, paid extras, sauce limits and removable ingredients. Test two units in the customer menu/cart; server totals must include the saved per-unit surcharges. Repeat for dine-in, pickup and delivery; only delivery adds its existing service fee.
+- Remove an option while another browser has it in a pending cart. Checkout must reject the obsolete selection with instructions to add the product again. Already submitted orders must retain their original snapshot. Other products must remain unchanged.
+- The first size must have a zero surcharge (base product); optional groups have no minimum. A limit of zero hides its group. Sauces are free; paid sauces belong in Extras. Each group supports up to 20 choices. No inventory consumption or modifier-level stock tracking is added.
+- New carts encode selections as versioned JSON, supporting names containing `+` and `|`. The server continues accepting valid legacy cart keys, validates choices against the current product configuration and computes prices itself.
+- Local option/API tests use mocked persistence. Confirm the real save/reload flow in the disposable staging database before production rollout.
+
 ## Delivery feature: staging verification
 
 1. Confirm the Vercel `staging` preview's `DATABASE_URL` targets the **staging Neon branch**, not production. Do not run migrations or database integration tests with production credentials in a local `.env`.

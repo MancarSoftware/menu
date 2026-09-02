@@ -6,7 +6,7 @@ import { Check, Flame, Minus, Plus, ShoppingCart, Sparkles, UtensilsCrossed, X }
 import { useCart } from "@/features/cart/cart-context";
 import type { MenuItemView } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
-import { getProductOptions } from "./product-options";
+import { createCustomizationKey, getProductOptions } from "./product-options";
 
 export function DishDialog({ item, onClose, whatsapp, dineInTable }: { item: MenuItemView | null; onClose: () => void; whatsapp: string; dineInTable: { number: number; name: string } | null }) {
   const { addItem } = useCart();
@@ -49,7 +49,7 @@ export function DishDialog({ item, onClose, whatsapp, dineInTable }: { item: Men
     sauces.length ? `Salsas: ${sauces.join(", ")}` : "",
     removedIngredients.length ? `Sin: ${removedIngredients.join(", ")}` : "",
   ].filter(Boolean);
-  const selectionKey = [portionId, [...extras].sort().join("+"), [...sauces].sort().join("+"), [...removedIngredients].sort().join("+")].join("|");
+  const selectionKey = createCustomizationKey(portionId, extras, sauces, removedIngredients);
 
   function choosePortion(id: string) {
     setPortionId(id);
@@ -57,14 +57,14 @@ export function DishDialog({ item, onClose, whatsapp, dineInTable }: { item: Men
   }
 
   function toggleExtra(id: string) {
-    setExtras((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+    setExtras((current) => current.includes(id) ? current.filter((value) => value !== id) : current.length >= options!.maxExtras ? current : [...current, id]);
     setAdded(false);
   }
 
   function toggleSauce(label: string) {
     setSauces((current) => {
       if (current.includes(label)) return current.filter((value) => value !== label);
-      if (current.length >= 2) return current;
+      if (current.length >= options!.maxSauces) return current;
       return [...current, label];
     });
     setAdded(false);
@@ -100,24 +100,24 @@ export function DishDialog({ item, onClose, whatsapp, dineInTable }: { item: Men
           <p className="product-dialog__price"><span>Desde</span>{formatPrice(unitPriceCents)}</p>
 
           <div className="product-dialog__options">
-            <fieldset>
+            {options.portions.length > 0 && <fieldset>
               <legend>Elige tu tamaño</legend>
               <div className="product-option-grid">
                 {options.portions.map((option) => <label key={option.id} className="product-option" data-selected={portionId === option.id}><input type="radio" name="portion" value={option.id} checked={portionId === option.id} onChange={() => choosePortion(option.id)} /><span><strong>{option.label}</strong><small>{option.priceCents ? `+${formatPrice(option.priceCents)}` : "Incluido"}</small></span></label>)}
               </div>
-            </fieldset>
+            </fieldset>}
 
-            {options.extras.length > 0 && <fieldset>
-              <legend>Hazla más tuya <small>opcional</small></legend>
+            {options.extras.length > 0 && options.maxExtras > 0 && <fieldset>
+              <legend>Hazla más tuya <small>opcional · hasta {Math.min(options.maxExtras, options.extras.length)}</small></legend>
               <div className="product-option-list">
-                {options.extras.map((option) => <label key={option.id} className="product-check"><input type="checkbox" checked={extras.includes(option.id)} onChange={() => toggleExtra(option.id)} /><span>{option.label}</span><strong>+{formatPrice(option.priceCents)}</strong></label>)}
+                {options.extras.map((option) => <label key={option.id} className="product-check"><input type="checkbox" checked={extras.includes(option.id)} disabled={!extras.includes(option.id) && extras.length >= options.maxExtras} onChange={() => toggleExtra(option.id)} /><span>{option.label}</span><strong>{option.priceCents ? `+${formatPrice(option.priceCents)}` : "Incluido"}</strong></label>)}
               </div>
             </fieldset>}
 
-            {options.sauces.length > 0 && <fieldset>
-              <legend>Salsas <small>elige hasta 2</small></legend>
+            {options.sauces.length > 0 && options.maxSauces > 0 && <fieldset>
+              <legend>Salsas <small>opcional · hasta {Math.min(options.maxSauces, options.sauces.length)}</small></legend>
               <div className="product-option-chips">
-                {options.sauces.map((sauce) => <label key={sauce} data-selected={sauces.includes(sauce)}><input type="checkbox" checked={sauces.includes(sauce)} disabled={!sauces.includes(sauce) && sauces.length >= 2} onChange={() => toggleSauce(sauce)} /><span>{sauce}</span></label>)}
+                {options.sauces.map((sauce) => <label key={sauce} data-selected={sauces.includes(sauce)}><input type="checkbox" checked={sauces.includes(sauce)} disabled={!sauces.includes(sauce) && sauces.length >= options.maxSauces} onChange={() => toggleSauce(sauce)} /><span>{sauce}</span></label>)}
               </div>
             </fieldset>}
 

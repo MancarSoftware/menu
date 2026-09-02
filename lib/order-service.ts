@@ -5,6 +5,7 @@ import { db } from "./db";
 import type { DeliveryPoint, OrderMode } from "./domain";
 import { orderInclude } from "./order-serializers";
 import { parseArray } from "./serializers";
+import { parseProductOptions } from "./product-customization";
 
 type RequestedItem = { productId: string; quantity: number; customizationKey: string };
 type CreateOrderInput = {
@@ -40,7 +41,7 @@ export async function createCustomerOrder(input: CreateOrderInput) {
   const orderItems = input.items.map((requestedItem) => {
     const product = productMap.get(requestedItem.productId);
     if (!product) return null;
-    const customization = resolveProductCustomization({ categorySlug: product.category.slug, ingredients: parseArray(product.ingredients) }, requestedItem.customizationKey);
+    const customization = resolveProductCustomization({ categorySlug: product.category.slug, ingredients: parseArray(product.ingredients), customizationOptions: parseProductOptions(product.customizationOptions) }, requestedItem.customizationKey);
     if (!customization) return null;
     const unitPriceCents = product.priceCents + customization.extraPriceCents;
     return {
@@ -54,7 +55,7 @@ export async function createCustomerOrder(input: CreateOrderInput) {
       customization: JSON.stringify(customization.labels),
     };
   });
-  if (orderItems.some((item) => item === null)) throw new OrderInputError("Una personalización ya no es válida.");
+  if (orderItems.some((item) => item === null)) throw new OrderInputError("Las opciones de un producto cambiaron. Retíralo del carrito y vuelve a agregarlo desde el menú.", 409);
   const validItems = orderItems.filter((item): item is NonNullable<typeof item> => item !== null);
   const subtotalCents = validItems.reduce((total, item) => total + item.lineTotalCents, 0);
   const serviceFeeCents = input.mode === "DELIVERY" ? 250 : 0;
