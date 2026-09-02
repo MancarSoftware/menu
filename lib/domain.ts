@@ -133,6 +133,35 @@ export type CashShiftView = {
   closedAt: string | null;
 };
 
+export type CollectionTotals = {
+  collectedCents: number;
+  refundsCents: number;
+  netCents: number;
+  paymentCount: number;
+};
+
+export type CashCollectionView = {
+  id: string;
+  type: string;
+  method: string;
+  amountCents: number;
+  actorName: string;
+  createdAt: string;
+  order: { id: number; orderNumber: number; businessDate: string; mode: string };
+  shift: { id: string; businessDate: string; openedAt: string; status: string } | null;
+};
+
+export type CashCollectionsView = {
+  date: string;
+  totals: CollectionTotals;
+  methods: (CollectionTotals & { method: string })[];
+  events: CashCollectionView[];
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalEvents: number;
+};
+
 export type StaffUserView = {
   id: string;
   email: string;

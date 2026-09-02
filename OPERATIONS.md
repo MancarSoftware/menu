@@ -36,6 +36,17 @@ The unit/component tests in `tests/delivery*.test.ts` use mock location and data
 - Open a receipt from both Ventas and the driver view. Check the driver and collector names (including older payments stored with an email), full quantity totals, delivery charge, payment method, refund labels and PDF/print content. Disable browser headers/footers; test on the actual printer before rollout. Deleted legacy staff use a neutral label, never an email fallback.
 - Driver cash contributes to the shift's expected cash even if it is still physically with the driver. Collect that cash from the driver before reconciling the drawer. A separate driver-to-cashier handover ledger is not implemented by this update.
 
+## Cash collections: staging verification
+
+This collection report uses existing tables; it adds no migration or environment variable. It does not backfill or reassign historical payments.
+
+1. In staging, open a shift with a known opening balance. Collect one local cash order and one delivered order from an authorized driver's account. Leave Caja open: **Cobros del día** and the shift's cash amount should refresh within 5 seconds. Confirm the driver name, method, payment time and shift appear in the detail.
+2. Record card and transfer payments after verifying receipt externally. With no shift open, these should still appear in daily totals and history as **Sin turno de caja**. They must not increase expected cash. Cash collection without an open shift must remain blocked.
+3. Compare **Total cobrado**, **Reembolsos totales**, **Neto del día** and payment count with Ventas for the same payment date. Refunds reduce the corresponding method's net amount; the top method amounts are gross collections. Pending orders do not count.
+4. Check multiple history pages and confirm totals do not change with pagination. Select an older payment date; verify it remains selected after refresh. Today should advance at Ecuador midnight. A prior-day order collected today belongs to today's collections; its receipt retains the original order number and date.
+5. Before closing a shift, collect cash physically held by drivers. Expected cash remains opening + cash payments − cash refunds assigned to that shift, even across midnight. A daily report date does not select or alter a shift. Confirm actual count and discrepancy calculation.
+6. For an allegedly missing collection, inspect the order receipt and the matching ledger date/method/shift before changing anything. Do not invent a payment, collect it twice, or automatically assign legacy unlinked payments to today's shift. Retest with two staff devices and the real staging database before promoting to production.
+
 ## Backups and restore
 
 1. Keep Neon point-in-time restore/branch history enabled within the retention offered by the active plan.
