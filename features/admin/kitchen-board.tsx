@@ -24,6 +24,8 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
   const closedOrderIds = useRef(new Set<number>());
   const knownOrderIds = useRef(new Set(initialOrders.map((order) => order.id)));
   const audioContext = useRef<AudioContext | null>(null);
+  const refreshInFlight = useRef(false);
+  const mutationGeneration = useRef(0);
 
   const playAlarm = useCallback(async () => {
     if (!audioContext.current) return;
@@ -50,25 +52,44 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
   }
 
   const refresh = useCallback(async () => {
+    if (refreshInFlight.current) return;
+    refreshInFlight.current = true;
+    const generation = mutationGeneration.current;
     try {
       const result = await requestJson<{ orders: OrderView[] }>("/api/admin/orders");
+      if (generation !== mutationGeneration.current) return;
       const visible = result.orders.filter((order) => !closedOrderIds.current.has(order.id));
       const hasNew = visible.some((order) => !knownOrderIds.current.has(order.id));
       if (hasNew && soundEnabled) { try { await playAlarm(); } catch { setSoundEnabled(false); } }
+      if (generation !== mutationGeneration.current) return;
       visible.forEach((order) => knownOrderIds.current.add(order.id));
       setOrders(visible); setMessage("");
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos actualizar los pedidos."); }
+    finally { refreshInFlight.current = false; }
   }, [playAlarm, soundEnabled]);
 
-  useEffect(() => setOrders(initialOrders.filter((order) => !closedOrderIds.current.has(order.id))), [initialOrders]);
-  useEffect(() => { const interval = window.setInterval(refresh, 5000); return () => window.clearInterval(interval); }, [refresh]);
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => { if (!cancelled) void refresh(); });
+    const interval = window.setInterval(refresh, 5000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+    };
+  }, [refresh]);
   useEffect(() => () => { void audioContext.current?.close(); }, []);
   useEffect(() => { if (!message) return; const timeout = window.setTimeout(() => setMessage(""), 5000); return () => window.clearTimeout(timeout); }, [message]);
 
   async function advance(order: OrderView, status: OrderStatus, method?: PaymentMethod) {
+    mutationGeneration.current += 1;
     setPendingId(order.id); setMessage("");
     try {
       const result = await requestJson<{ order: OrderView }>(`/api/admin/orders/${order.id}`, "PATCH", { status, version: order.version, ...(status === "PAID" ? { paymentMethod: method } : {}) });
+      mutationGeneration.current += 1;
       if (["PAID", "CANCELLED"].includes(result.order.status)) closedOrderIds.current.add(order.id);
       setOrders((current) => closedOrderIds.current.has(order.id) ? current.filter((candidate) => candidate.id !== order.id) : current.map((candidate) => candidate.id === order.id ? result.order : candidate));
       if (result.order.status === "PAID") { setPaymentOrder(null); onPaymentRecorded?.(); }

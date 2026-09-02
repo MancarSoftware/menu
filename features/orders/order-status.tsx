@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Check, ChefHat, CircleDot, Clock3, ReceiptText, UtensilsCrossed } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useCart } from "@/features/cart/cart-context";
 import type { OrderStatus, OrderView } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
 
@@ -16,8 +17,11 @@ const steps: { status: OrderStatus; label: string; icon: typeof Check }[] = [
 
 export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
   const router = useRouter();
+  const { forgetOrder, rememberOrder } = useCart();
   const [order, setOrder] = useState(initialOrder);
   const [connectionMessage, setConnectionMessage] = useState("");
+
+  useEffect(() => rememberOrder(order), [order, rememberOrder]);
 
   useEffect(() => {
     if (["PAID", "CANCELLED"].includes(order.status)) return;
@@ -52,6 +56,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
         if (cancelled) return;
         if (response.ok) {
           ended = true;
+          forgetOrder(order.publicId);
           router.replace("/menu?sesion=finalizada");
           router.refresh();
         } else if (response.status === 409) {
@@ -72,7 +77,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [order.mode, order.status, router]);
+  }, [forgetOrder, order.mode, order.publicId, order.status, router]);
 
   const currentIndex = steps.findIndex((step) => step.status === order.status);
   const isCancelled = order.status === "CANCELLED";

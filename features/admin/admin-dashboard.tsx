@@ -16,15 +16,43 @@ import { StaffManager } from "./staff-manager";
 
 type Tab = "overview" | "orders" | "reports" | "cash" | "tables" | "categories" | "items" | "restaurant" | "staff";
 type Notice = { kind: "success" | "error"; message: string } | null;
+const tabStorageKey = "el-bueno-admin-section-v1";
+
+function canOpenTab(value: string, role: StaffRole): value is Tab {
+  if (["orders", "staff"].includes(value)) return true;
+  if (["overview", "reports", "cash"].includes(value)) return ["ADMIN", "CASHIER"].includes(role);
+  return role === "ADMIN" && ["tables", "categories", "items", "restaurant"].includes(value);
+}
 
 export function AdminDashboard({ categories, restaurant, tables, orders, initialMetrics, userEmail, role }: { categories: MenuCategoryView[]; restaurant: RestaurantView; tables: DiningTableView[]; orders: OrderView[]; initialMetrics: AdminMetricsView; userEmail: string; role: StaffRole }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(["ADMIN", "CASHIER"].includes(role) ? "overview" : "orders");
+  const [sectionRestored, setSectionRestored] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [metrics, setMetrics] = useState(initialMetrics);
   const [revenueDate, setRevenueDate] = useState(initialMetrics.date);
   const items = categories.flatMap((category) => category.items);
   const available = items.filter((item) => item.isAvailable).length;
+
+  useEffect(() => {
+    let cancelled = false;
+    let storedTab: Tab | null = null;
+    try {
+      const stored = window.sessionStorage.getItem(tabStorageKey);
+      if (stored && canOpenTab(stored, role)) storedTab = stored;
+    } catch { /* Session storage is optional; server permissions remain authoritative. */ }
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (storedTab) setTab(storedTab);
+      setSectionRestored(true);
+    });
+    return () => { cancelled = true; };
+  }, [role]);
+
+  useEffect(() => {
+    if (!sectionRestored) return;
+    try { window.sessionStorage.setItem(tabStorageKey, tab); } catch { /* Keep navigation usable. */ }
+  }, [sectionRestored, tab]);
 
   const refreshMetrics = useCallback(async (date = revenueDate) => {
     try {
@@ -53,7 +81,11 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
     catch (error) { if (error instanceof SessionExpiredError) router.push("/admin/login"); setNotice({ kind: "error", message: error instanceof Error ? error.message : "Ocurrió un error." }); throw error; }
   }
 
-  async function logout() { await requestJson("/api/auth/logout", "POST"); router.push("/admin/login"); router.refresh(); }
+  async function logout() {
+    await requestJson("/api/auth/logout", "POST");
+    try { window.sessionStorage.removeItem(tabStorageKey); } catch { /* Storage may be blocked. */ }
+    router.push("/admin/login"); router.refresh();
+  }
 
   return (
     <div className="admin-shell">
@@ -78,7 +110,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
         {notice && <div className="admin-notice" data-kind={notice.kind} role="status">{notice.kind === "success" ? <Check aria-hidden="true" /> : <CircleOff aria-hidden="true" />}{notice.message}<button onClick={() => setNotice(null)} aria-label="Cerrar aviso"><X aria-hidden="true" /></button></div>}
 
         {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} metrics={metrics} revenueDate={revenueDate} onRevenueDateChange={(date) => { setRevenueDate(date); void refreshMetrics(date); }} onNavigate={setTab} />}
-        {tab === "orders" && <KitchenBoard initialOrders={orders} role={role} onPaymentRecorded={() => { void refreshMetrics(); }} />}
+        <div hidden={tab !== "orders"}><KitchenBoard initialOrders={orders} role={role} onPaymentRecorded={() => { void refreshMetrics(); }} /></div>
         {tab === "reports" && <ReportsPanel />}
         {tab === "cash" && <CashRegister />}
         {tab === "tables" && <TableManager initialTables={tables} />}

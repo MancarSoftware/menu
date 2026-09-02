@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bike, Clock3, MapPin, Minus, Plus, ShoppingBag, Store, Trash2, UtensilsCrossed } from "lucide-react";
 import { useRef, useState } from "react";
+import type { OrderView } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
-import { useCart } from "./cart-context";
+import { activeOrderStatusLabel, useCart } from "./cart-context";
 
 const deliveryFeeCents = 250;
 type Fulfillment = "delivery" | "pickup" | "dine-in";
@@ -14,7 +15,7 @@ type DineInTable = { number: number; name: string } | null;
 
 export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: string; pickupAddress: string; city: string; dineInTable: DineInTable }) {
   const router = useRouter();
-  const { entries, totalCents, updateQuantity, clearCart } = useCart();
+  const { activeOrders, entries, isReady, totalCents, updateQuantity, clearCart, rememberOrder } = useCart();
   const [fulfillment, setFulfillment] = useState<Fulfillment>(dineInTable ? "dine-in" : "delivery");
   const [address, setAddress] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -42,8 +43,9 @@ export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: strin
           items: entries.map((entry) => ({ productId: entry.product.id, quantity: entry.quantity, customizationKey: entry.customization.key })),
         }),
       });
-      const body = await response.json() as { order?: { publicId: string }; error?: string };
+      const body = await response.json() as { order?: OrderView; error?: string };
       if (!response.ok || !body.order) throw new Error(body.error ?? "No pudimos enviar el pedido a cocina.");
+      rememberOrder(body.order);
       clearCart();
       router.push(`/pedido/${body.order.publicId}`);
     } catch (reason) {
@@ -71,16 +73,19 @@ export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: strin
           items: entries.map((entry) => ({ productId: entry.product.id, quantity: entry.quantity, customizationKey: entry.customization.key })),
         }),
       });
-      const body = await response.json() as { order?: { publicId: string }; error?: string };
+      const body = await response.json() as { order?: OrderView; error?: string };
       if (!response.ok || !body.order) throw new Error(body.error ?? "No pudimos registrar el pedido.");
+      rememberOrder(body.order);
       clearCart();
       router.push(`/pedido/${body.order.publicId}`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "No pudimos registrar el pedido."); }
     finally { setPending(false); }
   }
 
+  if (!isReady) return <main id="contenido" className="fast-page cart-page cart-empty" aria-busy="true"><p role="status">Recuperando tu pedido…</p></main>;
+
   if (!entries.length) {
-    return <main id="contenido" className="fast-page cart-page cart-empty"><ShoppingBag aria-hidden="true" /><h1>Tu carrito está vacío</h1><p>Agrega una hamburguesa, pizza o combo para comenzar.</p><Link className="primary-button" href="/menu">Explorar el menú</Link></main>;
+    return <main id="contenido" className="fast-page cart-page cart-empty"><ShoppingBag aria-hidden="true" /><h1>{activeOrders.length ? "Tus pedidos siguen aquí" : "Tu carrito está vacío"}</h1><p>{activeOrders.length ? "Puedes volver a consultar su estado aunque cambies de sección o recargues la página." : "Agrega una hamburguesa, pizza o combo para comenzar."}</p>{activeOrders.length > 0 && <div className="cart-saved-orders">{activeOrders.map((order) => <Link key={order.publicId} href={`/pedido/${order.publicId}`}><span><strong>Pedido #{order.orderNumber}</strong><small>{order.mode === "DINE_IN" && order.tableNumber ? `Mesa ${order.tableNumber} · ` : ""}{activeOrderStatusLabel(order.status)}</small></span><Clock3 aria-hidden="true" /></Link>)}</div>}<Link className="primary-button" href="/menu">{activeOrders.length ? "Pedir algo más" : "Explorar el menú"}</Link></main>;
   }
 
   return (
