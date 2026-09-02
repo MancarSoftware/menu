@@ -17,6 +17,14 @@ describe("runtime validation", () => {
     const result = publicOrderSchema.safeParse({ clientRequestId: crypto.randomUUID(), mode: "DELIVERY", customerName: "Ana", customerPhone: "0999999999", deliveryAddress: "", notes: "", items: [{ productId: "burger", quantity: 1, customizationKey: "standard" }] });
     expect(result.success).toBe(false);
   });
+  it.each(["DELIVERY", "PICKUP"])("accepts a valid %s order without a table identifier", (mode) => {
+    const result = publicOrderSchema.safeParse({
+      clientRequestId: crypto.randomUUID(), mode, customerName: "Ana", customerPhone: "0999999999",
+      deliveryAddress: mode === "DELIVERY" ? "Calle de prueba 123" : "", notes: "",
+      items: [{ productId: "burger", quantity: 1, customizationKey: "standard" }],
+    });
+    expect(result.success).toBe(true);
+  });
   it("requires a strong staff password", () => {
     expect(passwordSchema.safeParse("weak-password").success).toBe(false);
     expect(passwordSchema.safeParse("SecureAccess2026").success).toBe(true);
