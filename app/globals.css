@@ -288,6 +288,35 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .staff-list article { padding: .9rem 0; display: grid; grid-template-columns: minmax(180px,1fr) 150px auto auto; gap: .7rem; align-items: center; border-bottom: 1px solid var(--line); }
 .staff-list article[data-inactive="true"] { opacity: .55; }
+.staff-cash-permission { grid-column: 1 / -1; display: flex !important; align-items: center; gap: .6rem; font-size: .85rem; }
+.staff-cash-permission input { width: 20px !important; min-height: 20px !important; }
+.delivery-board { display: grid; gap: 1.2rem; }
+.delivery-board__header, .driver-dashboard > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.delivery-board__header h2 { margin: .2rem 0; }
+.delivery-board__header p, .delivery-ticket small { color: var(--ink-muted); font-size: .85rem; }
+.delivery-board__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 1rem; }
+.delivery-ticket { min-width: 0; padding: 1.2rem; border: 1px solid var(--line-strong); background: var(--coal-soft); display: flex; flex-direction: column; gap: 1rem; overflow-wrap: anywhere; }
+.delivery-ticket p, .delivery-ticket h3 { margin: 0; }
+.delivery-ticket header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
+.delivery-ticket__status { padding: .3rem .6rem; background: #3b3322; color: #ffdc80; font-size: .8rem; }
+.delivery-ticket__status[data-status="OUT_FOR_DELIVERY"] { background: #21374c; color: #9ddaff; }
+.delivery-ticket__status[data-status="DELIVERED"] { background: #20392a; color: #abefbc; }
+.delivery-ticket__phone { display: flex; align-items: center; gap: .5rem; width: fit-content; min-height: 44px; }
+.delivery-ticket__phone svg { width: 17px; }
+.delivery-ticket__total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.delivery-ticket__assignment { display: grid; gap: .5rem; }
+.delivery-ticket select { width: 100%; min-width: 0; min-height: 48px; padding: .65rem; background: var(--coal); color: var(--ink); border: 1px solid var(--line-strong); }
+.delivery-ticket summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; text-decoration: underline; text-underline-offset: 4px; }
+.delivery-ticket li { margin-block: .5rem; }
+.delivery-ticket li small { display: block; }
+.delivery-ticket footer { margin-top: auto; }
+.delivery-ticket footer > button, .delivery-ticket__payment { width: 100%; }
+.delivery-ticket__payment { display: grid; gap: .7rem; }
+.delivery-board__empty { border: 1px dashed var(--line-strong); padding: 2rem; color: var(--ink-muted); }
+.driver-dashboard { max-width: 1100px; margin: auto; display: grid; gap: 1.5rem; }
+.driver-dashboard h1 { display: flex; align-items: center; gap: .75rem; font-size: 1.7rem; }
+.driver-dashboard nav { display: flex; flex-wrap: wrap; gap: .5rem; }
+.driver-dashboard nav [aria-pressed="true"] { border-color: var(--ember); }
 .staff-list article > span { display: grid; }
 .staff-list small, .audit-list small { color: var(--ink-muted); }
 .staff-list select { min-height: 38px; padding: .5rem; border: 1px solid var(--line); background: #111; color: var(--ink); }

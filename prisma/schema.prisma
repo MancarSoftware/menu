@@ -95,6 +95,13 @@ model CustomerOrder {
   customerName    String?
   customerPhone   String?
   deliveryAddress String?
+  deliveryLatitude Float?
+  deliveryLongitude Float?
+  deliveryStatus String @default("PENDING")
+  assignedDriverId String?
+  assignedDriver AdminUser? @relation(fields: [assignedDriverId], references: [id], onDelete: SetNull)
+  dispatchedAt DateTime?
+  deliveredAt DateTime?
   acknowledgedAt  DateTime?
   acknowledgedBy  String?
   version         Int                  @default(1)
@@ -115,6 +122,7 @@ model CustomerOrder {
   @@index([diningTableId, status])
   @@index([paymentStatus, paidAt])
   @@index([mode, createdAt])
+  @@index([assignedDriverId, deliveryStatus])
   @@index([businessDate, paymentMethod])
 }
 
@@ -228,6 +236,8 @@ model AdminUser {
   role               String    @default("ADMIN")
   isActive           Boolean   @default(true)
   mustChangePassword Boolean   @default(false)
+  canCollectCash     Boolean   @default(false)
+  assignedDeliveries CustomerOrder[]
   passwordChangedAt  DateTime?
   lastLoginAt        DateTime?
   updatedAt          DateTime  @updatedAt

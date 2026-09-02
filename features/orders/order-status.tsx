@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ChefHat, CircleDot, Clock3, ReceiptText, UtensilsCrossed } from "lucide-react";
+import { Check, ChefHat, CircleDot, Clock3, ReceiptText, Truck, UtensilsCrossed } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart } from "@/features/cart/cart-context";
 import type { OrderStatus, OrderView } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
+import { deliveryDirectionsUrl } from "@/lib/delivery";
 
 const steps: { status: OrderStatus; label: string; icon: typeof Check }[] = [
   { status: "RECEIVED", label: "Recibido", icon: ReceiptText },
@@ -30,7 +31,8 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
         const response = await fetch(order.mode === "DINE_IN" ? `/api/dine-in/orders/${order.publicId}` : `/api/orders/${order.publicId}`, { cache: "no-store" });
         const body = await response.json() as { order?: OrderView };
         if (response.ok && body.order) {
-          setOrder(body.order);
+          const updated = body.order;
+          setOrder((current) => updated.version >= current.version ? updated : current);
           setConnectionMessage("");
         } else {
           setConnectionMessage("No pudimos actualizar el estado. Volveremos a intentarlo.");
@@ -79,7 +81,12 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
     };
   }, [forgetOrder, order.mode, order.publicId, order.status, router]);
 
-  const currentIndex = steps.findIndex((step) => step.status === order.status);
+  const displaySteps = order.mode === "DELIVERY"
+    ? [...steps.slice(0, 3), { status: "OUT_FOR_DELIVERY", label: "En camino", icon: Truck }, { status: "SERVED", label: "Entregado", icon: Check }]
+    : steps.map((step) => step.status === "SERVED" && order.mode === "PICKUP" ? { ...step, label: "Retirado" } : step);
+  const progressStatus = order.mode === "DELIVERY" && order.status === "READY" && order.deliveryStatus === "OUT_FOR_DELIVERY" ? "OUT_FOR_DELIVERY" : order.status;
+  const currentIndex = displaySteps.findIndex((step) => step.status === progressStatus);
+  const destination = order.mode === "DELIVERY" ? deliveryDirectionsUrl(order) : null;
   const isCancelled = order.status === "CANCELLED";
 
   return (
@@ -90,8 +97,8 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
         <p>{isCancelled ? "Consulta al personal si necesitas hacer un nuevo pedido." : order.status === "PAID" ? order.mode === "DINE_IN" ? "Pago registrado. Estamos cerrando la sesión de tu mesa." : "Pago registrado. Gracias por tu pedido." : "La cocina recibió tu orden. Esta pantalla se actualiza automáticamente."}</p>
       </header>
 
-      {!isCancelled && <ol className="order-progress" aria-label="Estado del pedido">
-        {steps.map((step, index) => {
+      {!isCancelled && <ol className="order-progress" data-delivery={order.mode === "DELIVERY"} aria-label="Estado del pedido">
+        {displaySteps.map((step, index) => {
           const Icon = step.icon;
           const active = order.status === "PAID" || index <= currentIndex;
           return <li key={step.status} data-active={active} data-current={index === currentIndex}><span><Icon aria-hidden="true" /></span><strong>{step.label}</strong></li>;
@@ -102,6 +109,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: OrderView }) {
         <div className="order-receipt__heading"><ReceiptText aria-hidden="true" /><div><strong>Orden #{order.orderNumber}</strong><small>{new Date(order.createdAt).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}</small></div></div>
         <div className="order-receipt__items">{order.items.map((item) => <article key={item.id}><span><strong>{item.quantity} × {item.productName}</strong>{item.customization.length > 0 && <small>{item.customization.join(" · ")}</small>}</span><b>{formatPrice(item.lineTotalCents)}</b></article>)}</div>
         {order.notes && <p className="order-receipt__notes"><CircleDot aria-hidden="true" /> {order.notes}</p>}
+        {destination && <p className="order-receipt__notes"><a href={destination} target="_blank" rel="noopener noreferrer">Ver punto de entrega en Google Maps</a>{order.deliveryAddress && <span> · {order.deliveryAddress}</span>}</p>}
         <div className="order-receipt__total"><span>Total</span><strong>{formatPrice(order.totalCents)}</strong></div>
       </section>
 

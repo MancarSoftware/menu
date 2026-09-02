@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Archivo_Black, Poppins } from "next/font/google";
 import { AppChrome } from "@/components/app-chrome";
 import { CartProvider } from "@/features/cart/cart-context";
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./public.css";
 

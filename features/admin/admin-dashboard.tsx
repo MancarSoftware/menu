@@ -13,14 +13,15 @@ import { TableManager } from "./table-manager";
 import { ReportsPanel } from "./reports-panel";
 import { CashRegister } from "./cash-register";
 import { StaffManager } from "./staff-manager";
+import { DeliveryBoard } from "./delivery-board";
 
-type Tab = "overview" | "orders" | "reports" | "cash" | "tables" | "categories" | "items" | "restaurant" | "staff";
+type Tab = "overview" | "orders" | "deliveries" | "reports" | "cash" | "tables" | "categories" | "items" | "restaurant" | "staff";
 type Notice = { kind: "success" | "error"; message: string } | null;
 const tabStorageKey = "el-bueno-admin-section-v1";
 
 function canOpenTab(value: string, role: StaffRole): value is Tab {
   if (["orders", "staff"].includes(value)) return true;
-  if (["overview", "reports", "cash"].includes(value)) return ["ADMIN", "CASHIER"].includes(role);
+  if (["overview", "reports", "cash", "deliveries"].includes(value)) return ["ADMIN", "CASHIER"].includes(role);
   return role === "ADMIN" && ["tables", "categories", "items", "restaurant"].includes(value);
 }
 
@@ -94,6 +95,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
         <nav aria-label="Secciones de administración">
           {["ADMIN", "CASHIER"].includes(role) && <button data-active={tab === "overview"} onClick={() => setTab("overview")}><LayoutList aria-hidden="true" />Resumen</button>}
           <button data-active={tab === "orders"} onClick={() => setTab("orders")}><ChefHat aria-hidden="true" />Cocina</button>
+          {["ADMIN", "CASHIER"].includes(role) && <button data-active={tab === "deliveries"} onClick={() => setTab("deliveries")}><MapPinned aria-hidden="true" />Repartos</button>}
           {["ADMIN", "CASHIER"].includes(role) && <button data-active={tab === "reports"} onClick={() => setTab("reports")}><BarChart3 aria-hidden="true" />Ventas</button>}
           {["ADMIN", "CASHIER"].includes(role) && <button data-active={tab === "cash"} onClick={() => setTab("cash")}><Banknote aria-hidden="true" />Caja</button>}
           {role === "ADMIN" && <button data-active={tab === "tables"} onClick={() => setTab("tables")}><QrCode aria-hidden="true" />Mesas y QR</button>}
@@ -106,11 +108,12 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
       </aside>
 
       <section className="admin-workspace">
-        <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "orders" ? "Cocina" : tab === "reports" ? "Ventas" : tab === "cash" ? "Caja" : tab === "tables" ? "Mesas" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : tab === "staff" ? role === "ADMIN" ? "Equipo y seguridad" : "Mi acceso" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
+        <header className="admin-topbar"><div><p className="eyebrow">Operación / {new Date().toLocaleDateString("es-EC")}</p><h1>{tab === "overview" ? "Resumen" : tab === "orders" ? "Cocina" : tab === "deliveries" ? "Repartos" : tab === "reports" ? "Ventas" : tab === "cash" ? "Caja" : tab === "tables" ? "Mesas" : tab === "categories" ? "Categorías" : tab === "items" ? "Productos" : tab === "staff" ? role === "ADMIN" ? "Equipo y seguridad" : "Mi acceso" : "El local"}</h1></div><a className="button button--line" href="/menu" target="_blank">Ver menú <ExternalLink aria-hidden="true" /></a></header>
         {notice && <div className="admin-notice" data-kind={notice.kind} role="status">{notice.kind === "success" ? <Check aria-hidden="true" /> : <CircleOff aria-hidden="true" />}{notice.message}<button onClick={() => setNotice(null)} aria-label="Cerrar aviso"><X aria-hidden="true" /></button></div>}
 
         {tab === "overview" && <Overview categories={categories} itemCount={items.length} availableCount={available} metrics={metrics} revenueDate={revenueDate} onRevenueDateChange={(date) => { setRevenueDate(date); void refreshMetrics(date); }} onNavigate={setTab} />}
         <div hidden={tab !== "orders"}><KitchenBoard initialOrders={orders} role={role} onPaymentRecorded={() => { void refreshMetrics(); }} /></div>
+        {["ADMIN", "CASHIER"].includes(role) && <div hidden={tab !== "deliveries"}><DeliveryBoard manager /></div>}
         {tab === "reports" && <ReportsPanel />}
         {tab === "cash" && <CashRegister />}
         {tab === "tables" && <TableManager initialTables={tables} />}

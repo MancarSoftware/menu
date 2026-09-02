@@ -63,7 +63,10 @@ export type DiningTableView = {
 export type OrderStatus = "RECEIVED" | "PREPARING" | "READY" | "SERVED" | "PAID" | "CANCELLED";
 export type OrderMode = "DINE_IN" | "DELIVERY" | "PICKUP";
 export type PaymentMethod = "CASH" | "CARD" | "TRANSFER";
-export type StaffRole = "ADMIN" | "CASHIER" | "WAITER" | "KITCHEN";
+export type StaffRole = "ADMIN" | "CASHIER" | "WAITER" | "KITCHEN" | "DRIVER";
+export type DeliveryStatus = "PENDING" | "OUT_FOR_DELIVERY" | "DELIVERED";
+export type DeliveryPoint = { latitude: number; longitude: number };
+export type DeliveryOrderView = OrderView & { assignedDriver: { id: string; name: string } | null };
 export type OrderItemView = {
   id: string;
   productName: string;
@@ -88,6 +91,9 @@ export type OrderView = {
   customerName: string | null;
   customerPhone: string | null;
   deliveryAddress: string | null;
+  deliveryLatitude: number | null;
+  deliveryLongitude: number | null;
+  deliveryStatus: DeliveryStatus;
   acknowledgedAt: string | null;
   version: number;
   createdAt: string;
@@ -134,5 +140,6 @@ export type StaffUserView = {
   role: StaffRole;
   isActive: boolean;
   mustChangePassword: boolean;
+  canCollectCash: boolean;
   lastLoginAt: string | null;
 };

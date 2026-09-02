@@ -4,6 +4,7 @@ import { Ban, BellRing, ChefHat, Check, ReceiptText, UtensilsCrossed, Volume2, V
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { OrderStatus, OrderView, PaymentMethod, StaffRole } from "@/lib/domain";
 import { formatPrice } from "@/lib/format";
+import { deliveryStatusLabel } from "@/lib/delivery";
 import { requestJson } from "./admin-api";
 
 const columns: { status: OrderStatus; label: string }[] = [
@@ -105,10 +106,11 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
       return <section className="kitchen-column" key={column.status} data-status={column.status}>
         <header><h3>{column.label}</h3><span>{columnOrders.length}</span></header>
         <div>{columnOrders.length ? columnOrders.map((order) => {
-          const action = nextActions[order.status]; const ActionIcon = action?.icon ?? Check;
+          const action = order.mode === "DELIVERY" && order.status === "READY" ? undefined : nextActions[order.status]; const ActionIcon = action?.icon ?? Check;
           return <article className="kitchen-ticket" key={order.id} data-new={order.status === "RECEIVED" && !order.acknowledgedAt}>
             <header><strong>#{order.orderNumber}</strong><span>{modeLabel(order)}</span><time>{new Date(order.createdAt).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}</time></header>
             {order.status === "RECEIVED" && !order.acknowledgedAt && <div className="kitchen-ticket__new"><BellRing />Nuevo pedido</div>}
+            {order.mode === "DELIVERY" && order.status === "READY" && <p>{deliveryStatusLabel(order.deliveryStatus)} · Gestionar en Repartos</p>}
             <div className="kitchen-ticket__items">{order.items.map((item) => <div key={item.id}><span><b>{item.quantity}×</b> {item.productName}{item.customization.length > 0 && <small>{item.customization.join(" · ")}</small>}</span><strong>{formatPrice(item.lineTotalCents)}</strong></div>)}</div>
             {order.customerName && <p>{order.customerName} · {order.customerPhone}</p>}{order.deliveryAddress && <p>Entrega: {order.deliveryAddress}</p>}{order.notes && <p>Nota: {order.notes}</p>}
             <footer>{action && (action.status !== "PAID" || ["ADMIN", "CASHIER"].includes(role)) && <button className="button button--solid" disabled={pendingId === order.id} onClick={() => action.status === "PAID" ? setPaymentOrder(order) : advance(order, action.status)}><ActionIcon aria-hidden="true" />{action.label}</button>}{["RECEIVED", "PREPARING"].includes(order.status) && <button className="icon-button icon-button--danger" disabled={pendingId === order.id} onClick={() => advance(order, "CANCELLED")} aria-label={`Cancelar pedido ${order.orderNumber}`}><Ban /></button>}</footer>

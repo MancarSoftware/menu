@@ -43,6 +43,19 @@ npm run build:local
 
 Local development stores uploads in `public/uploads`. Production can use Cloudinary by setting the optional variables in `.env.example`. Optimized WebP assets used by the public experience live in `public/images/fast-food`.
 
+## Delivery staff and destination
+
+- Create a **Repartidor** in **Equipo**. Drivers sign in at `/admin/login` and see only their assigned active deliveries, not the kitchen, reports, menu editor, or other staff accounts.
+- **Repartos** lets admins/cashiers assign or reassign an active driver. The kitchen marks an order ready; the driver then selects **Salir a reparto → Confirmar entrega**. Customers see **En camino → Entregado** automatically.
+- Delivery checkout requires a confirmed map point: request GPS permission or choose the destination manually on the map. A written address/reference is optional additional guidance. Pickup and table orders never require a location.
+- Directions open Google Maps with the destination coordinates. The driver's current position is chosen by Google Maps; this app does not track drivers or customers continuously.
+- Cash collection is disabled for drivers by default. An admin can grant it per driver in Equipo. Authorized drivers can record cash only for their own completed deliveries and only while a cash register is open. Other payments remain with caja. This records payment, not an online charge.
+- Location is stored with the order, not in browser local storage. Legacy deliveries without coordinates retain address-based routing; staff should verify their address before departing.
+
+No new secret is needed for maps. Leaflet loads only when delivery checkout mounts, OpenStreetMap provides map tiles with attribution, and directions use Google Maps URLs. GPS needs HTTPS (or localhost) and browser permission. OpenStreetMap's public tiles have no availability guarantee; review their [usage policy](https://operations.osmfoundation.org/policies/tiles/) before increasing traffic or promising delivery availability.
+
+See the delivery staging checklist in [OPERATIONS.md](./OPERATIONS.md) before promoting this feature.
+
 ## Commit conventions
 
 Use Conventional Commits. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the format and project-specific examples.

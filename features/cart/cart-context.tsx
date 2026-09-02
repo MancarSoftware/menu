@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { MenuItemView, OrderMode, OrderStatus, OrderView } from "@/lib/domain";
+import type { DeliveryStatus, MenuItemView, OrderMode, OrderStatus, OrderView } from "@/lib/domain";
 
 export type CartProduct = Pick<MenuItemView, "id" | "name" | "slug" | "priceCents" | "imageUrl">;
 export type CartCustomization = { key: string; labels: string[]; extraPriceCents: number };
@@ -11,6 +11,7 @@ export type ActiveOrderSummary = {
   orderNumber: number;
   mode: OrderMode;
   status: OrderStatus;
+  deliveryStatus?: DeliveryStatus;
   createdAt: string;
   tableNumber: number | null;
   version: number;
@@ -83,6 +84,7 @@ function isStoredActiveOrders(value: unknown): value is ActiveOrderSummary[] {
       && Number.isInteger(candidate.version) && Number(candidate.version) > 0
       && orderModes.includes(candidate.mode as OrderMode)
       && orderStatuses.includes(candidate.status as OrderStatus)
+      && (candidate.deliveryStatus === undefined || ["PENDING", "OUT_FOR_DELIVERY", "DELIVERED"].includes(candidate.deliveryStatus))
       && typeof candidate.createdAt === "string" && Number.isFinite(Date.parse(candidate.createdAt))
       && (candidate.tableNumber === null || Number.isInteger(candidate.tableNumber));
   });
@@ -94,13 +96,18 @@ function toActiveOrderSummary(order: OrderView): ActiveOrderSummary {
     orderNumber: order.orderNumber,
     mode: order.mode,
     status: order.status,
+    deliveryStatus: order.deliveryStatus,
     createdAt: order.createdAt,
     tableNumber: order.table?.number ?? null,
     version: order.version,
   };
 }
 
-export function activeOrderStatusLabel(status: OrderStatus) {
+export function activeOrderStatusLabel(status: OrderStatus, mode?: OrderMode, deliveryStatus?: DeliveryStatus) {
+  if (mode === "DELIVERY" && !["PAID", "CANCELLED"].includes(status)) {
+    if (deliveryStatus === "OUT_FOR_DELIVERY") return "En camino";
+    if (deliveryStatus === "DELIVERED" || status === "SERVED") return "Entregado";
+  }
   return status === "RECEIVED" ? "Recibido"
     : status === "PREPARING" ? "En cocina"
       : status === "READY" ? "Listo"
@@ -168,7 +175,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setActiveOrders((current) => {
       const existing = current.find((entry) => entry.publicId === summary.publicId);
       if (existing && existing.version > summary.version) return current;
-      if (existing && existing.version === summary.version && existing.orderNumber === summary.orderNumber && existing.mode === summary.mode && existing.status === summary.status && existing.createdAt === summary.createdAt && existing.tableNumber === summary.tableNumber) return current;
+      if (existing && existing.version === summary.version && existing.orderNumber === summary.orderNumber && existing.mode === summary.mode && existing.status === summary.status && existing.deliveryStatus === summary.deliveryStatus && existing.createdAt === summary.createdAt && existing.tableNumber === summary.tableNumber) return current;
       return existing ? current.map((entry) => entry.publicId === summary.publicId ? summary : entry) : [...current, summary];
     });
   }, []);

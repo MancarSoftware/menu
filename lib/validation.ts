@@ -60,7 +60,11 @@ export const diningTableSchema = z.object({
 export const diningTableStatusSchema = z.enum(["AVAILABLE", "OCCUPIED", "CLEANING", "INACTIVE"]);
 export const orderStatusSchema = z.enum(["RECEIVED", "PREPARING", "READY", "SERVED", "PAID", "CANCELLED"]);
 export const paymentMethodSchema = z.enum(["CASH", "CARD", "TRANSFER"]);
-export const staffRoleSchema = z.enum(["ADMIN", "CASHIER", "WAITER", "KITCHEN"]);
+export const staffRoleSchema = z.enum(["ADMIN", "CASHIER", "WAITER", "KITCHEN", "DRIVER"]);
+export const deliveryPointSchema = z.object({
+  latitude: z.number().finite().min(-90).max(90),
+  longitude: z.number().finite().min(-180).max(180),
+});
 
 export const dineInOrderSchema = z.object({
   clientRequestId: z.uuid(),
@@ -77,10 +81,11 @@ export const publicOrderSchema = dineInOrderSchema.extend({
   customerName: z.string().trim().min(2).max(100),
   customerPhone: z.string().trim().regex(/^\+?[0-9\s-]{7,20}$/),
   deliveryAddress: z.string().trim().max(240).optional().default(""),
-}).refine((value) => value.mode !== "DELIVERY" || value.deliveryAddress.length >= 8, {
-  message: "Ingresa una dirección de entrega válida.",
-  path: ["deliveryAddress"],
-});
+  deliveryPoint: deliveryPointSchema.optional(),
+}).refine((value) => value.mode !== "DELIVERY" || !!value.deliveryPoint, {
+  message: "Comparte tu ubicación o confirma el punto de entrega en el mapa.",
+  path: ["deliveryPoint"],
+}).transform((value) => value.mode === "PICKUP" ? { ...value, deliveryAddress: "", deliveryPoint: undefined } : value);
 
 export const passwordSchema = z.string().min(12).max(200)
   .regex(/[A-Z]/, "Incluye una mayúscula.")

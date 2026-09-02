@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { resolveProductCustomization } from "@/features/menu/product-options";
 import { getBusinessDate } from "./business-date";
 import { db } from "./db";
-import type { OrderMode } from "./domain";
+import type { DeliveryPoint, OrderMode } from "./domain";
 import { orderInclude } from "./order-serializers";
 import { parseArray } from "./serializers";
 
@@ -16,6 +16,7 @@ type CreateOrderInput = {
   customerName?: string;
   customerPhone?: string;
   deliveryAddress?: string;
+  deliveryPoint?: DeliveryPoint;
 };
 
 export class OrderInputError extends Error {
@@ -80,7 +81,9 @@ export async function createCustomerOrder(input: CreateOrderInput) {
           notes: input.notes,
           customerName: input.customerName,
           customerPhone: input.customerPhone,
-          deliveryAddress: input.deliveryAddress,
+          deliveryAddress: input.mode === "DELIVERY" ? input.deliveryAddress : null,
+          deliveryLatitude: input.mode === "DELIVERY" ? input.deliveryPoint?.latitude : null,
+          deliveryLongitude: input.mode === "DELIVERY" ? input.deliveryPoint?.longitude : null,
           items: { create: validItems },
           statusHistory: { create: { status: "RECEIVED", actor: "CUSTOMER" } },
         },

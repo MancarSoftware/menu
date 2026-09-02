@@ -101,7 +101,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
             const final = ["PAID", "CANCELLED"].includes(order.status);
             return <article key={order.publicId} data-status={order.status}>
               <Link href={`/pedido/${order.publicId}`}>
-                <span><strong>#{order.orderNumber}</strong><small>{order.mode === "DINE_IN" && order.tableNumber ? `Mesa ${order.tableNumber} · ` : ""}{activeOrderStatusLabel(order.status)}</small></span>
+                <span><strong>#{order.orderNumber}</strong><small>{order.mode === "DINE_IN" && order.tableNumber ? `Mesa ${order.tableNumber} · ` : ""}{activeOrderStatusLabel(order.status, order.mode, order.deliveryStatus)}</small></span>
                 <ChevronRight aria-hidden="true" />
               </Link>
               {final && <button type="button" onClick={() => forgetOrder(order.publicId)} aria-label={`Ocultar pedido ${order.orderNumber}`}><X aria-hidden="true" /></button>}

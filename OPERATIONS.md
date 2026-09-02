@@ -14,6 +14,19 @@ The Vercel build command is `npm run build`. It generates Prisma Client, runs pe
 
 Local compilation uses `npm run build:local` so a developer does not accidentally migrate the database referenced by the local `.env`.
 
+## Delivery feature: staging verification
+
+1. Confirm the Vercel `staging` preview's `DATABASE_URL` targets the **staging Neon branch**, not production. Do not run migrations or database integration tests with production credentials in a local `.env`.
+2. Commit and push the feature to `staging` when ready. The existing build applies `20260902010000_delivery_assignment_and_location` before compiling. It adds nullable coordinates, driver assignment, delivery progress and a per-driver cash permission; it also updates the staff-role database constraint. Existing completed deliveries are marked delivered without inventing coordinates.
+3. In the staging admin, create a Repartidor. Sign in with that account in a separate browser/device. Verify it sees no unassigned/other-driver orders and cannot access kitchen, staff or reporting APIs.
+4. On an HTTPS staging URL, confirm a delivery point manually, then separately try GPS allowed/denied/unavailable. Submit a test delivery, refresh, and check its saved destination in Repartos. Verify pickup can be submitted without location and has no delivery fee. Use demo details, not real customer data.
+5. Assign the driver, prepare the order in Cocina, mark it ready, then dispatch and deliver from the driver's phone. Check the directions link and customer tracking after navigation/reload. Repeat concurrent actions from two staff sessions; one stale action should receive a conflict.
+6. Verify driver cash collection is blocked by default. Enable it for that driver, open a staging cash shift, and verify a single confirmed collection updates the order and reports. Verify non-cash collection stays with caja. Check role changes/deactivation are blocked until assigned orders are reassigned or closed.
+7. Validate the map and driver layout at phone widths (320/390/768 px), keyboard navigation, and real-device GPS. Public OSM tiles are best-effort, not an SLA-backed navigation service; choose a suitable provider before higher-volume production use.
+8. Only merge to `main` after the staging checks. Production and staging remain separate; this feature does not introduce SaaS tenancy.
+
+The unit/component tests in `tests/delivery*.test.ts` use mock location and database services and are safe without a test database. They do **not** replace applying the migration and running the real-device staging flow. `tests/database.integration.test.ts` performs writes and requires an isolated disposable database.
+
 ## Backups and restore
 
 1. Keep Neon point-in-time restore/branch history enabled within the retention offered by the active plan.

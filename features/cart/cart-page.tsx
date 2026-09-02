@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bike, Clock3, MapPin, Minus, Plus, ShoppingBag, Store, Trash2, UtensilsCrossed } from "lucide-react";
 import { useRef, useState } from "react";
-import type { OrderView } from "@/lib/domain";
+import type { DeliveryPoint, OrderView } from "@/lib/domain";
+import { DeliveryLocationPicker } from "./delivery-location-picker";
 import { formatPrice } from "@/lib/format";
 import { activeOrderStatusLabel, useCart } from "./cart-context";
 
@@ -13,11 +14,12 @@ const deliveryFeeCents = 250;
 type Fulfillment = "delivery" | "pickup" | "dine-in";
 type DineInTable = { number: number; name: string } | null;
 
-export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: string; pickupAddress: string; city: string; dineInTable: DineInTable }) {
+export function CartPage({ pickupAddress, city, dineInTable, locationCenter }: { whatsapp: string; pickupAddress: string; city: string; dineInTable: DineInTable; locationCenter: DeliveryPoint }) {
   const router = useRouter();
   const { activeOrders, entries, isReady, totalCents, updateQuantity, clearCart, rememberOrder } = useCart();
   const [fulfillment, setFulfillment] = useState<Fulfillment>(dineInTable ? "dine-in" : "delivery");
   const [address, setAddress] = useState("");
+  const [deliveryPoint, setDeliveryPoint] = useState<DeliveryPoint | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -26,7 +28,7 @@ export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: strin
   const requestId = useRef("");
   const serviceFeeCents = fulfillment === "delivery" ? deliveryFeeCents : 0;
   const finalTotal = entries.length ? totalCents + serviceFeeCents : 0;
-  const canOrder = entries.length > 0 && customerName.trim().length >= 2 && /^\+?[0-9\s-]{7,20}$/.test(customerPhone.trim()) && (fulfillment !== "delivery" || address.trim().length >= 8);
+  const canOrder = entries.length > 0 && customerName.trim().length >= 2 && /^\+?[0-9\s-]{7,20}$/.test(customerPhone.trim()) && (fulfillment !== "delivery" || !!deliveryPoint);
 
   async function submitDineInOrder() {
     if (!dineInTable || pending || !entries.length) return;
@@ -69,6 +71,7 @@ export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: strin
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
           deliveryAddress: fulfillment === "delivery" ? address.trim() : "",
+          ...(fulfillment === "delivery" ? { deliveryPoint } : {}),
           notes: notes.trim(),
           items: entries.map((entry) => ({ productId: entry.product.id, quantity: entry.quantity, customizationKey: entry.customization.key })),
         }),
@@ -85,7 +88,7 @@ export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: strin
   if (!isReady) return <main id="contenido" className="fast-page cart-page cart-empty" aria-busy="true"><p role="status">Recuperando tu pedido…</p></main>;
 
   if (!entries.length) {
-    return <main id="contenido" className="fast-page cart-page cart-empty"><ShoppingBag aria-hidden="true" /><h1>{activeOrders.length ? "Tus pedidos siguen aquí" : "Tu carrito está vacío"}</h1><p>{activeOrders.length ? "Puedes volver a consultar su estado aunque cambies de sección o recargues la página." : "Agrega una hamburguesa, pizza o combo para comenzar."}</p>{activeOrders.length > 0 && <div className="cart-saved-orders">{activeOrders.map((order) => <Link key={order.publicId} href={`/pedido/${order.publicId}`}><span><strong>Pedido #{order.orderNumber}</strong><small>{order.mode === "DINE_IN" && order.tableNumber ? `Mesa ${order.tableNumber} · ` : ""}{activeOrderStatusLabel(order.status)}</small></span><Clock3 aria-hidden="true" /></Link>)}</div>}<Link className="primary-button" href="/menu">{activeOrders.length ? "Pedir algo más" : "Explorar el menú"}</Link></main>;
+    return <main id="contenido" className="fast-page cart-page cart-empty"><ShoppingBag aria-hidden="true" /><h1>{activeOrders.length ? "Tus pedidos siguen aquí" : "Tu carrito está vacío"}</h1><p>{activeOrders.length ? "Puedes volver a consultar su estado aunque cambies de sección o recargues la página." : "Agrega una hamburguesa, pizza o combo para comenzar."}</p>{activeOrders.length > 0 && <div className="cart-saved-orders">{activeOrders.map((order) => <Link key={order.publicId} href={`/pedido/${order.publicId}`}><span><strong>Pedido #{order.orderNumber}</strong><small>{order.mode === "DINE_IN" && order.tableNumber ? `Mesa ${order.tableNumber} · ` : ""}{activeOrderStatusLabel(order.status, order.mode, order.deliveryStatus)}</small></span><Clock3 aria-hidden="true" /></Link>)}</div>}<Link className="primary-button" href="/menu">{activeOrders.length ? "Pedir algo más" : "Explorar el menú"}</Link></main>;
   }
 
   return (
@@ -114,7 +117,8 @@ export function CartPage({ pickupAddress, city, dineInTable }: { whatsapp: strin
 
         {fulfillment !== "dine-in" && <div className="checkout-fields checkout-fields--customer"><label>Nombre<input required minLength={2} maxLength={100} value={customerName} onChange={(event) => setCustomerName(event.target.value)} autoComplete="name" /></label><label>Teléfono<input required inputMode="tel" minLength={7} maxLength={20} value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value.replace(/[^0-9+\s-]/g, ""))} autoComplete="tel" /></label></div>}
         {fulfillment === "delivery" ? <div className="checkout-fields">
-          <label>Dirección de envío<input required minLength={8} maxLength={240} value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Calle, número y referencia" autoComplete="street-address" /></label>
+          <DeliveryLocationPicker center={locationCenter} value={deliveryPoint} onChange={setDeliveryPoint} />
+          <label>Referencia de entrega (opcional)<input maxLength={240} value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Edificio, piso, puerta o indicaciones para llegar" autoComplete="street-address" /></label>
         </div> : fulfillment === "pickup" ? <div className="pickup-note"><MapPin aria-hidden="true" /><span><strong>Retira en {city}</strong><small>{pickupAddress}</small></span><span><Clock3 aria-hidden="true" /> Verás aquí cada cambio de estado</span></div> : <div className="pickup-note dine-in-note"><UtensilsCrossed aria-hidden="true" /><span><strong>Pedido para {dineInTable?.name}</strong><small>La cocina recibirá directamente tu orden.</small></span><span><Clock3 aria-hidden="true" /> Verás aquí cada cambio de estado</span></div>}
       </section>
 

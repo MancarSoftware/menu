@@ -17,6 +17,7 @@ const order: OrderView = {
   id: 42, publicId: "order42", orderNumber: 42, businessDate: "2026-09-01", mode: "PICKUP", status: "RECEIVED",
   paymentStatus: "PENDING", paymentMethod: null, subtotalCents: 699, totalCents: 699, notes: "",
   customerName: "Test customer", customerPhone: "0990000000", deliveryAddress: null,
+  deliveryLatitude: null, deliveryLongitude: null, deliveryStatus: "PENDING",
   acknowledgedAt: null, version: 1, createdAt: "2026-09-01T18:00:00.000Z", table: null,
   items: [{ id: "item42", productName: "Test burger", quantity: 1, unitPriceCents: 699, lineTotalCents: 699, customization: [] }],
 };
@@ -52,7 +53,7 @@ describe("customer order continuity", () => {
     expect(localStorage.getItem(key)).not.toContain(order.customerPhone);
     first.unmount();
 
-    render(h(CartProvider, { children: h(AppChrome, { children: h(CartPage, { whatsapp: "", pickupAddress: "Quito", city: "Quito", dineInTable: null }) }) }));
+    render(h(CartProvider, { children: h(AppChrome, { children: h(CartPage, { whatsapp: "", pickupAddress: "Quito", city: "Quito", dineInTable: null, locationCenter: { latitude: 0, longitude: 0 } }) }) }));
     await waitFor(() => expect(screen.getByRole("heading", { name: "Tus pedidos siguen aquí" })).toBeTruthy());
     expect(screen.getByRole("link", { name: "#42 Recibido" }).getAttribute("href")).toBe("/pedido/order42");
     expect(screen.getByRole("link", { name: "Pedido #42 Recibido" }).getAttribute("href")).toBe("/pedido/order42");
@@ -95,6 +96,7 @@ describe("kitchen continuity", () => {
   it("keeps live tickets and their stages across sections and restores the kitchen on remount", async () => {
     let serverOrder = order;
     vi.stubGlobal("fetch", vi.fn(async (_url: string, options?: RequestInit) => {
+      if (_url === "/api/admin/deliveries") return { ok: true, status: 200, json: async () => ({ orders: [], drivers: [], canCollectCash: false }) };
       if (options?.method === "PATCH") {
         serverOrder = { ...order, status: "PREPARING", acknowledgedAt: order.createdAt, version: 2 };
         return { ok: true, status: 200, json: async () => ({ order: serverOrder }) };

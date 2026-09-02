@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import { getTokenSecret } from "./token-secret";
 import type { StaffRole } from "./domain";
+import { db } from "./db";
 
 const COOKIE_NAME = "el_bueno_admin_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
-const STAFF_ROLES: StaffRole[] = ["ADMIN", "CASHIER", "WAITER", "KITCHEN"];
+const STAFF_ROLES: StaffRole[] = ["ADMIN", "CASHIER", "WAITER", "KITCHEN", "DRIVER"];
 
 export async function createSession(user: { id: string; email: string; role: string }) {
   const token = await new SignJWT({ email: user.email, role: user.role })
@@ -35,9 +36,11 @@ export async function getSession() {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getTokenSecret());
-    const role = String(payload.role) as StaffRole;
-    if (!payload.sub || !STAFF_ROLES.includes(role)) return null;
-    return { id: payload.sub, email: String(payload.email), role };
+    if (!payload.sub) return null;
+    const user = await db.adminUser.findUnique({ where: { id: payload.sub }, select: { id: true, email: true, role: true, isActive: true, canCollectCash: true, passwordChangedAt: true } });
+    if (!user?.isActive || !STAFF_ROLES.includes(user.role as StaffRole)) return null;
+    if (user.passwordChangedAt && (!payload.iat || payload.iat < Math.floor(user.passwordChangedAt.getTime() / 1000))) return null;
+    return { id: user.id, email: user.email, role: user.role as StaffRole, canCollectCash: user.canCollectCash };
   } catch {
     return null;
   }

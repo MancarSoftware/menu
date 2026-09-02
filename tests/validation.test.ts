@@ -21,6 +21,7 @@ describe("runtime validation", () => {
     const result = publicOrderSchema.safeParse({
       clientRequestId: crypto.randomUUID(), mode, customerName: "Ana", customerPhone: "0999999999",
       deliveryAddress: mode === "DELIVERY" ? "Calle de prueba 123" : "", notes: "",
+      ...(mode === "DELIVERY" ? { deliveryPoint: { latitude: -0.22, longitude: -78.51 } } : {}),
       items: [{ productId: "burger", quantity: 1, customizationKey: "standard" }],
     });
     expect(result.success).toBe(true);

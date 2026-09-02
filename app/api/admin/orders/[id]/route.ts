@@ -5,6 +5,7 @@ import { requireRoleApi } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { orderInclude, toOrderView } from "@/lib/order-serializers";
 import { orderStatusSchema, paymentMethodSchema } from "@/lib/validation";
+import { canDriverCollectCash } from "@/lib/delivery";
 
 const updateSchema = z.object({ status: orderStatusSchema, paymentMethod: paymentMethodSchema.optional(), version: z.number().int().positive() });
 const transitions: Record<string, string[]> = {
@@ -16,7 +17,7 @@ const transitions: Record<string, string[]> = {
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireRoleApi(["ADMIN", "CASHIER", "WAITER", "KITCHEN"]);
+    const session = await requireRoleApi(["ADMIN", "CASHIER", "WAITER", "KITCHEN", "DRIVER"]);
     if (!session) return NextResponse.json({ error: "Sesión expirada o sin permisos." }, { status: 401 });
     if (!assertSameOrigin(request)) return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
     const { id } = await context.params;
@@ -24,8 +25,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!Number.isInteger(orderId)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
     const input = updateSchema.parse(await request.json());
     const current = await db.customerOrder.findUniqueOrThrow({ where: { id: orderId } });
+    const driverPayment = input.status === "PAID" && canDriverCollectCash(current, session, input.paymentMethod);
+    if (session.role === "DRIVER" && !driverPayment) return NextResponse.json({ error: "No tienes permiso para realizar esta operación." }, { status: 403 });
+    if (current.mode === "DELIVERY" && input.status === "SERVED") return NextResponse.json({ error: "Confirma la entrega desde la sección Repartos." }, { status: 409 });
     if (!transitions[current.status]?.includes(input.status)) return NextResponse.json({ error: "Ese cambio de estado ya fue realizado o no está permitido." }, { status: 409 });
-    if (input.status === "PAID" && !["ADMIN", "CASHIER"].includes(session.role)) return NextResponse.json({ error: "Solo caja o administración puede registrar pagos." }, { status: 403 });
+    if (input.status === "PAID" && !["ADMIN", "CASHIER"].includes(session.role) && !driverPayment) return NextResponse.json({ error: "Solo caja o personal autorizado puede registrar pagos." }, { status: 403 });
     if (input.status === "PAID" && !input.paymentMethod) return NextResponse.json({ error: "Selecciona el método de pago." }, { status: 400 });
 
     const openShift = input.status === "PAID" ? await db.cashRegisterShift.findFirst({ where: { status: "OPEN" }, orderBy: { openedAt: "desc" } }) : null;
