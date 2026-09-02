@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, Banknote, BarChart3, Check, ChefHat, ChevronRight, CircleOff, Edit3, ExternalLink, ImagePlus, LayoutList, LogOut, MapPinned, Plus, QrCode, Search, Trash2, UserRoundCog, UtensilsCrossed, X } from "lucide-react";
 import type { AdminMetricsView, DiningTableView, MenuCategoryView, MenuItemView, OrderView, RestaurantView, StaffRole } from "@/lib/domain";
 import { getBusinessDate } from "@/lib/business-date";
@@ -33,6 +34,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   const [sectionRestored, setSectionRestored] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
   const [metrics, setMetrics] = useState(initialMetrics);
   const today = useBusinessToday();
   const [selectedRevenueDate, setSelectedRevenueDate] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
     } catch { /* Session storage is optional; server permissions remain authoritative. */ }
     queueMicrotask(() => {
       if (cancelled) return;
+      setHeaderActions(document.getElementById("admin-header-actions"));
       if (storedTab) setTab(storedTab);
       setSectionRestored(true);
     });
@@ -100,6 +103,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
 
   return (
     <div className="admin-shell">
+      {headerActions && createPortal(<button className="admin-header-logout" type="button" disabled={loggingOut} onClick={() => void logout()}><LogOut aria-hidden="true" />{loggingOut ? "Saliendo…" : "Cerrar sesión"}</button>, headerActions)}
       <aside className="admin-sidebar">
         <div><p className="eyebrow">El Bueno</p><strong>Panel del menú</strong></div>
         <nav aria-label="Secciones de administración">
@@ -114,7 +118,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
           {role === "ADMIN" && <button data-active={tab === "restaurant"} onClick={() => setTab("restaurant")}><MapPinned aria-hidden="true" />Restaurante</button>}
           <button data-active={tab === "staff"} onClick={() => setTab("staff")}><UserRoundCog aria-hidden="true" />{role === "ADMIN" ? "Equipo" : "Mi acceso"}</button>
         </nav>
-        <div className="admin-sidebar__footer"><span>{userEmail}</span><button type="button" disabled={loggingOut} onClick={() => void logout()}><LogOut aria-hidden="true" />{loggingOut ? "Saliendo…" : "Cerrar sesión"}</button></div>
+        <div className="admin-sidebar__footer"><span>{userEmail}</span></div>
       </aside>
 
       <section className="admin-workspace">

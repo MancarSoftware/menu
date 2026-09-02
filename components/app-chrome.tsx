@@ -75,7 +75,7 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   }, [activeOrders, forgetOrder, isAdmin, pathname, rememberOrder, router]);
 
   if (isAdmin) {
-    return <><header className="admin-global-header"><Link href="/"><BrandMark /></Link></header>{children}</>;
+    return <><header className="admin-global-header"><Link href="/"><BrandMark /></Link><div id="admin-header-actions" className="admin-global-header__actions" /></header>{children}</>;
   }
 
   const title = titles[pathname] ?? "El Bueno";

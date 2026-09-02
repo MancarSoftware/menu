@@ -385,7 +385,8 @@
 .values-section article p { margin: 0; display: grid; color: var(--fast-muted); font-size: .7rem; }
 .values-section article strong { color: var(--fast-ink); font-size: .85rem; }
 
-.admin-global-header { position: fixed; z-index: 90; inset: 0 0 auto; height: var(--header-h); padding: 0 var(--gutter); display: flex; align-items: center; border-bottom: 1px solid var(--line); background: #0d0d0c; }
+.admin-global-header { position: fixed; z-index: 90; inset: 0 0 auto; height: var(--header-h); padding: 0 var(--gutter); display: flex; align-items: center; gap: .75rem; border-bottom: 1px solid var(--line); background: #0d0d0c; }
+.admin-global-header__actions { margin-left: auto; display: flex; align-items: center; flex-shrink: 0; }
 .admin-global-header .brand-mark__text { color: var(--ink); }
 
 @media (max-width: 760px) {
