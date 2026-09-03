@@ -9,7 +9,7 @@ const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("ASSIGN"), driverId: z.string().min(1), version: z.number().int().positive() }),
   z.object({ action: z.enum(["DISPATCH", "DELIVER"]), version: z.number().int().positive() }),
   z.object({ action: z.enum(["REPORT_ISSUE", "RETRY"]), reason: z.string().trim().min(4).max(240), version: z.number().int().positive() }),
-]);
+]).and(z.object({ override: z.boolean().optional(), overrideReason: z.string().trim().min(4).max(240).optional() }));
 class DeliveryError extends Error {}
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     await db.$transaction(async (tx) => {
       const order = await tx.customerOrder.findUniqueOrThrow({ where: { id } });
       if (input.version !== order.version) throw new DeliveryError("El pedido cambió. Actualiza la vista antes de continuar.");
-      const error = deliveryActionError(order, session, input.action);
+      const error = deliveryActionError(order, session, input.action, input);
       if (error) throw new DeliveryError(error);
       if (input.action === "ASSIGN") {
         // Lock the staff row so deactivation cannot race assignment.
@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       });
       if (changed.count !== 1) throw new DeliveryError("Otro miembro actualizó este pedido. Actualiza la vista e inténtalo de nuevo.");
       if (input.action === "DELIVER") await tx.orderStatusHistory.create({ data: { orderId: id, status: "SERVED", actor: session.email } });
-      await tx.auditLog.create({ data: { actorUserId: session.id, actorName: session.name, action: `DELIVERY_${input.action}`, entityType: "CustomerOrder", entityId: String(id), details: JSON.stringify({ previousDriverId: order.assignedDriverId, ...("reason" in input ? { reason: input.reason } : {}), ...(input.action === "ASSIGN" ? { driverId: input.driverId } : {}) }) } });
+      await tx.auditLog.create({ data: { actorUserId: session.id, actorName: session.name, action: `DELIVERY_${input.action}`, entityType: "CustomerOrder", entityId: String(id), details: JSON.stringify({ orderNumber: order.dailyNumber, businessDate: order.businessDate, previousDriverId: order.assignedDriverId, from: order.deliveryStatus, override: input.override === true, ...(input.override ? { overrideReason: input.overrideReason } : {}), ...("reason" in input ? { reason: input.reason } : {}), ...(input.action === "ASSIGN" ? { driverId: input.driverId } : {}) }) } });
     });
     return NextResponse.json({ ok: true });
   } catch (error) {

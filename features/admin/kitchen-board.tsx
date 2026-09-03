@@ -6,6 +6,7 @@ import type { OrderStatus, OrderView, PaymentMethod, StaffRole } from "@/lib/dom
 import { formatPrice } from "@/lib/format";
 import { deliveryStatusLabel } from "@/lib/delivery";
 import { requestJson } from "./admin-api";
+import { DeliveryDestination } from "./delivery-destination";
 
 const columns: { status: OrderStatus; label: string }[] = [
   { status: "RECEIVED", label: "Nuevos" }, { status: "PREPARING", label: "En cocina" }, { status: "READY", label: "Listos" }, { status: "SERVED", label: "Entregados" },
@@ -120,7 +121,7 @@ export function KitchenBoard({ initialOrders, role, onPaymentRecorded }: { initi
             {order.status === "RECEIVED" && !order.acknowledgedAt && <div className="kitchen-ticket__new"><BellRing />Nuevo pedido</div>}
             {order.mode === "DELIVERY" && order.status === "READY" && <p>{deliveryStatusLabel(order.deliveryStatus)} · Gestionar en Repartos</p>}
             <div className="kitchen-ticket__items">{order.items.map((item) => <div key={item.id}><span><b>{item.quantity}×</b> {item.productName}{item.customization.length > 0 && <small>{item.customization.join(" · ")}</small>}</span><strong>{formatPrice(item.lineTotalCents)}</strong></div>)}</div>
-            {order.customerName && <p>{order.customerName} · {order.customerPhone}</p>}{order.deliveryAddress && <p>Entrega: {order.deliveryAddress}</p>}{order.notes && <p>Nota: {order.notes}</p>}
+            {order.customerName && <p>{order.customerName} · {order.customerPhone}</p>}{order.mode === "DELIVERY" && <DeliveryDestination order={order} compact />}{order.notes && <p>Nota: {order.notes}</p>}
             <footer>{action && (action.status !== "PAID" || ["ADMIN", "CASHIER"].includes(role)) && <button className="button button--solid" disabled={pendingId === order.id} onClick={() => action.status === "PAID" ? setPaymentOrder(order) : advance(order, action.status)}><ActionIcon aria-hidden="true" />{action.label}</button>}{["ADMIN", "CASHIER"].includes(role) && ["RECEIVED", "PREPARING", "READY"].includes(order.status) && order.paymentStatus === "PENDING" && order.deliveryStatus !== "OUT_FOR_DELIVERY" && <button className="icon-button icon-button--danger" disabled={pendingId === order.id} onClick={() => advance(order, "CANCELLED")} aria-label={`Cancelar pedido ${order.orderNumber}`}><Ban /></button>}</footer>
           </article>;
         }) : <p className="kitchen-empty">Sin pedidos aquí.</p>}</div>

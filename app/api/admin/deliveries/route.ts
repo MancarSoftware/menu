@@ -32,6 +32,6 @@ export async function GET(request?: Request) {
       manager ? db.adminUser.findMany({ where: { role: "DRIVER", isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : Promise.resolve([]),
       db.customerOrder.count({ where }),
     ]);
-    return NextResponse.json({ orders: orders.map((order) => ({ ...toOrderView(order), assignedDriver: order.assignedDriver, deliveredAt: order.deliveredAt?.toISOString() ?? null })), drivers, canCollectCash: session.canCollectCash, allowedPaymentMethods: driverPaymentMethods(session), total, page, pageSize: history ? 20 : total }, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json({ orders: orders.map((order) => ({ ...toOrderView(order), assignedDriver: order.assignedDriver, deliveredAt: order.deliveredAt?.toISOString() ?? null })), drivers, canOverride: session.role === "ADMIN", canCollectCash: session.canCollectCash, allowedPaymentMethods: driverPaymentMethods(session), total, page, pageSize: history ? 20 : total }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) { return apiError(error); }
 }

@@ -22,7 +22,7 @@ describe("physical cash handover UI", () => {
   it("gives drivers their balance and history but no receipt-confirmation action", async () => {
     render(h(CashHandovers, { manager: false }));
     expect(await screen.findByText("Ana Repartidora")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Mi efectivo por entregar" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Efectivo por entregar a caja" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Confirmar recepción" })).toBeNull();
     expect(screen.getByText(/solo caja puede confirmar/)).toBeTruthy();
   });

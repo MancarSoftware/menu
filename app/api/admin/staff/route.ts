@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hash(input.password, 12);
     const user = await db.$transaction(async (transaction) => {
       const created = await transaction.adminUser.create({ data: { name: input.name, email: input.email, role: input.role, canCollectCash: input.role === "DRIVER" && input.canCollectCash, canCollectCard: input.role === "DRIVER" && input.canCollectCard, canCollectTransfer: input.role === "DRIVER" && input.canCollectTransfer, passwordHash, isActive: true, mustChangePassword: true, passwordChangedAt: new Date() } });
-      await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "STAFF_CREATED", entityType: "AdminUser", entityId: created.id, details: JSON.stringify({ email: created.email, role: created.role }) } });
+      await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.name, action: "STAFF_CREATED", entityType: "AdminUser", entityId: created.id, details: JSON.stringify({ email: created.email, role: created.role }) } });
       return created;
     });
     return NextResponse.json({ user: view(user) }, { status: 201 });

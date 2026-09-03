@@ -4,18 +4,18 @@ import { KeyRound, ShieldCheck, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { StaffRole, StaffUserView } from "@/lib/domain";
 import { requestJson } from "./admin-api";
+import { AuditPanel } from "./audit-panel";
 
 const collectionPermissions = [{ key: "canCollectCash", label: "Efectivo" }, { key: "canCollectCard", label: "Tarjeta verificada" }, { key: "canCollectTransfer", label: "Transferencia verificada" }] as const;
 const roles: { value: StaffRole; label: string }[] = [{ value: "ADMIN", label: "Administrador" }, { value: "CASHIER", label: "Caja" }, { value: "WAITER", label: "Mesero" }, { value: "KITCHEN", label: "Cocina" }, { value: "DRIVER", label: "Repartidor" }];
 
 export function StaffManager({ canManage }: { canManage: boolean }) {
   const [users, setUsers] = useState<StaffUserView[]>([]);
-  const [audit, setAudit] = useState<{ id: string; actorName: string; action: string; entityType: string; createdAt: string }[]>([]);
   const [form, setForm] = useState({ name: "", email: "", role: "WAITER" as StaffRole, password: "" });
   const [collection, setCollection] = useState({ canCollectCash: false, canCollectCard: false, canCollectTransfer: false });
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [message, setMessage] = useState("");
-  const load = useCallback(async () => { try { const [staff, log] = await Promise.all([requestJson<{ users: StaffUserView[] }>("/api/admin/staff"), requestJson<{ entries: { id: string; actorName: string; action: string; entityType: string; createdAt: string }[] }>("/api/admin/audit")]); setUsers(staff.users); setAudit(log.entries); } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos cargar el equipo."); } }, []);
+  const load = useCallback(async () => { try { const staff = await requestJson<{ users: StaffUserView[] }>("/api/admin/staff"); setUsers(staff.users); } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos cargar el equipo."); } }, []);
   useEffect(() => { if (!canManage) return; const timeout = window.setTimeout(load, 0); return () => window.clearTimeout(timeout); }, [canManage, load]);
   useEffect(() => { if (!message) return; const timeout = window.setTimeout(() => setMessage(""), 5000); return () => window.clearTimeout(timeout); }, [message]);
 
@@ -35,6 +35,6 @@ export function StaffManager({ canManage }: { canManage: boolean }) {
     </article>)}</section>}
     <section className="staff-forms">{canManage && <form className="admin-editor" onSubmit={create}><header><UserPlus /><div><p className="eyebrow">Nuevo acceso</p><h2>Agregar usuario</h2></div></header><label>Nombre<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></label><label>Correo<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></label><label>Rol<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as StaffRole })}>{roles.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>{form.role === "DRIVER" && <fieldset className="staff-collection-permissions"><legend>Métodos de cobro autorizados</legend>{collectionPermissions.map(({ key, label }) => <label className="staff-cash-permission" key={key}><input type="checkbox" checked={collection[key]} onChange={(event) => setCollection({ ...collection, [key]: event.target.checked })} />{label}</label>)}</fieldset>}<label>Contraseña temporal<input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} minLength={12} pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{12,}" title="Mínimo 12 caracteres, con mayúscula, minúscula y número." required /></label><p className="admin-form-help">Mínimo 12 caracteres, con mayúscula, minúscula y número.</p><button className="button button--solid">Crear acceso</button></form>}
       <form className="admin-editor" onSubmit={changePassword}><header><ShieldCheck /><div><p className="eyebrow">Seguridad personal</p><h2>Cambiar mi contraseña</h2></div></header><label>Contraseña actual<input type="password" value={passwords.currentPassword} onChange={(event) => setPasswords({ ...passwords, currentPassword: event.target.value })} required /></label><label>Nueva contraseña<input type="password" value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} minLength={12} required /></label><p className="admin-form-help">Mínimo 12 caracteres, con mayúscula, minúscula y número.</p><button className="button button--solid">Actualizar contraseña</button></form></section>
-    {canManage && <section className="audit-list"><header><div><p className="eyebrow">Últimos 100 eventos</p><h2>Historial de auditoría</h2></div><button className="button button--line" onClick={resetDemo}>Reiniciar demo de staging</button></header>{audit.map((entry) => <article key={entry.id}><span><strong>{entry.action.replaceAll("_", " ")}</strong><small>{entry.entityType}</small></span><span>{entry.actorName}<small>{new Date(entry.createdAt).toLocaleString("es-EC")}</small></span></article>)}</section>}
+    {canManage && <><AuditPanel users={users} /><details className="staff-demo-tools"><summary>Mantenimiento de la demo</summary><p>Solo para staging. No forma parte de la operación diaria del restaurante.</p><button className="button button--line" onClick={resetDemo}>Reiniciar demo de staging</button></details></>}
   </div>;
 }

@@ -39,6 +39,33 @@ beforeEach(() => {
 });
 
 describe("delivery API boundaries (database mocked)", () => {
+  it.each(["ADMIN", "CASHIER"])("does not let %s perform driver actions normally", async (role) => {
+    mocks.session.role = role;
+    for (const action of ["DISPATCH", "DELIVER", "REPORT_ISSUE"]) {
+      expect((await PATCH(request({ action, version: 3, reason: "Cliente no responde" }), context)).status).toBe(409);
+    }
+    expect(mocks.db.customerOrder.updateMany).not.toHaveBeenCalled();
+  });
+  it("requires an explicit admin intervention and records the reason without bypassing version or state", async () => {
+    mocks.session.role = "ADMIN";
+    expect((await PATCH(request({ action: "DISPATCH", version: 3, override: true }), context)).status).toBe(409);
+    expect((await PATCH(request({ action: "DISPATCH", version: 3, override: true, overrideReason: "x" }), context)).status).toBe(400);
+    const body = { action: "DISPATCH", version: 3, override: true, overrideReason: "El teléfono del repartidor dejó de funcionar" };
+    expect((await PATCH(request({ ...body, version: 2 }), context)).status).toBe(409);
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue({ ...current, status: "PREPARING" });
+    expect((await PATCH(request(body), context)).status).toBe(409);
+    mocks.db.customerOrder.findUniqueOrThrow.mockResolvedValue(current);
+    expect((await PATCH(request(body), context)).status).toBe(200);
+    expect(mocks.db.customerOrder.updateMany).toHaveBeenCalledOnce();
+    const entry = mocks.db.auditLog.create.mock.calls[0][0].data;
+    expect(entry.actorName).toBe("Test Driver");
+    expect(JSON.parse(entry.details)).toMatchObject({ override: true, overrideReason: body.overrideReason });
+  });
+  it.each(["DRIVER", "CASHIER"])("prevents %s from using the admin override", async (role) => {
+    mocks.session.role = role;
+    expect((await PATCH(request({ action: "DISPATCH", version: 3, override: true, overrideReason: "Intervención solicitada" }), context)).status).toBe(409);
+    expect(mocks.db.customerOrder.updateMany).not.toHaveBeenCalled();
+  });
   it("rejects a supplied future version rather than authorizing from an older snapshot", async () => {
     expect((await PATCH(request({ action: "DISPATCH", version: 4 }), context)).status).toBe(409);
     mocks.session.role = "ADMIN";

@@ -26,6 +26,8 @@ Los productos anteriores conservan sus opciones hasta editarlos; al guardar, que
 - **Mesa:** el cliente escanea el QR de su mesa, arma el carrito y confirma. Cocina empieza el pedido, lo marca listo y el personal confirma la entrega. Caja registra el pago; la mesa se libera cuando no quedan pedidos pendientes.
 - **Retiro:** el cliente selecciona retiro; no necesita ubicación ni envío. Cocina marca listo; confirma la entrega solo cuando el cliente lo recibe.
 - **Delivery:** el cliente confirma un punto del mapa. Caja asigna un repartidor en **Repartos**. Después de que cocina marque listo, el repartidor usa **Salir a reparto**, abre la ruta y pulsa **Confirmar entrega** al entregarlo.
+- **Destino:** la ubicación confirmada (GPS o punto elegido en el mapa) manda sobre el texto. **Referencia** sirve para describir la entrada, no para calcular la ruta. Usa **Ver punto** para revisar el mapa y **Abrir ruta** para navegar. Los pedidos anteriores sin coordenadas muestran una advertencia: confirma la dirección con el cliente.
+- **Funciones separadas:** caja/administración asigna y supervisa; el repartidor asignado registra salida, entrega e incidencias. Solo administración dispone de **Intervención administrativa**, una excepción con motivo obligatorio de 4 a 240 caracteres. No salta la preparación, asignación ni control de cambios simultáneos; su responsable y motivo quedan auditados.
 - Los pedidos enviados siguen guardados al cambiar de sección o recargar. Ante un error, revisa el pedido existente antes de volver a enviarlo. El contenido del carrito todavía no enviado no es una orden de cocina.
 
 ## Cobrar no significa recibir el efectivo en caja
@@ -38,7 +40,7 @@ Los productos anteriores conservan sus opciones hasta editarlos; al guardar, que
 
 1. Al cobrar, selecciona el método realmente recibido. **Tarjeta:** verifica aprobación en el terminal. **Transferencia:** confirma el ingreso en la cuenta del local, no solo una captura. El sistema registra el pago; no carga tarjetas ni hace transferencias.
 2. Cada método del repartidor requiere permiso independiente de administración. Solo puede cobrar pedidos propios entregados.
-3. El efectivo del repartidor aparece en **Mi efectivo** y en **Caja → Efectivo de repartidores**. Sigue contando como venta aunque todavía no esté en el cajón.
+3. El efectivo del repartidor aparece en **Efectivo por entregar** y en **Caja → Efectivo de repartidores**. Es dinero del restaurante, no ganancia personal. La sección solo aparece si tiene permiso para cobrar efectivo, cobros pendientes de entrega o recepciones históricas. Sigue contando como venta aunque todavía no esté en el cajón.
 4. El cajero cuenta el dinero en presencia del repartidor y pulsa **Confirmar recepción**, por el importe completo del cobro indicado. La confirmación guarda pedido, importe, nombres y fecha.
 5. Si falta dinero o la entrega es parcial, **no confirmes un importe que no recibiste**. Avisa al administrador y resuelve la diferencia antes del cierre. Esta versión no registra entregas parciales ni pérdidas de efectivo del repartidor.
 6. Caja no permite cerrar mientras haya cobros de repartidores del turno sin recepción confirmada. Reintentar una recepción ya registrada no duplica dinero.
@@ -75,6 +77,8 @@ Los productos anteriores conservan sus opciones hasta editarlos; al guardar, que
 5. Cierra sesión, especialmente en dispositivos compartidos. En móvil, administración tiene el botón junto al logotipo.
 
 ## Comprobantes y piloto
+
+En **Equipo → Historial de auditoría**, administración puede filtrar fechas, persona y actividad. Los eventos aparecen agrupados por pedido y fecha, con 25 eventos por página. Abre un grupo para ver sus cambios y **Ver detalle** para consultar motivo, responsable e importes. **Ver todo el pedido** quita los demás filtros y reúne también sus recepciones de efectivo; puede ocupar varias páginas. Los grupos resumen la página actual, no un total histórico del pedido. **Limpiar filtros** vuelve al historial general. Los registros originales se conservan; los nombres sustituyen los correos en la vista.
 
 El comprobante incluye artículos, cantidades, totales y nombres del personal, no el correo del repartidor. **No es una factura tributaria.** Al imprimir, desactiva encabezado/pie del navegador y verifica el tamaño en la impresora real.
 

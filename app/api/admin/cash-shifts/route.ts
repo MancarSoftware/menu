@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const input = openSchema.parse(await request.json());
     const shift = await db.$transaction(async (transaction) => {
       const created = await transaction.cashRegisterShift.create({ data: { businessDate: getBusinessDate(), openingBalanceCents: input.openingBalanceCents, notes: input.notes, openedByUserId: session.id, openedByName: session.email } });
-      await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "CASH_SHIFT_OPENED", entityType: "CashRegisterShift", entityId: created.id, details: JSON.stringify({ openingBalanceCents: input.openingBalanceCents }) } });
+      await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.name, action: "CASH_SHIFT_OPENED", entityType: "CashRegisterShift", entityId: created.id, details: JSON.stringify({ openingBalanceCents: input.openingBalanceCents }) } });
       return created;
     });
     return NextResponse.json({ shift: await shiftView(shift) }, { status: 201 });

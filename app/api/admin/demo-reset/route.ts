@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       await transaction.dailyOrderCounter.deleteMany();
       await transaction.diningTable.updateMany({ where: { isActive: true }, data: { status: "AVAILABLE" } });
       await transaction.auditLog.deleteMany();
-      await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: "DEMO_DATA_RESET", entityType: "System", entityId: "staging" } });
+      await transaction.auditLog.create({ data: { actorUserId: session.id, actorName: session.name, action: "DEMO_DATA_RESET", entityType: "System", entityId: "staging" } });
     });
     return NextResponse.json({ ok: true });
   } catch (error) { return apiError(error); }

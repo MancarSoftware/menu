@@ -6,7 +6,7 @@ import { POST as correctPayment } from "@/app/api/admin/orders/[id]/refund/route
 import { PATCH as closeShift } from "@/app/api/admin/cash-shifts/[id]/route";
 
 const mock = vi.hoisted(() => ({
-  actor: { id: "cashier1", name: "Ana Cajera", email: "test@example.invalid", role: "CASHIER" },
+  actor: { id: "cashier1", name: "Ana Cajera", email: "test@example.invalid", role: "CASHIER", canCollectCash: false },
   db: {
     paymentEvent: { findUnique: vi.fn(), findMany: vi.fn(), aggregate: vi.fn(), create: vi.fn(), updateMany: vi.fn(), groupBy: vi.fn() },
     driverCashHandover: { create: vi.fn(), findMany: vi.fn() },
@@ -26,7 +26,7 @@ function request(path: string, body: unknown, method = "POST", origin = "http://
 const correction = (body: object) => correctPayment(request("/api/admin/orders/1/refund", { version: 3, reason: "Corrección verificada", ...body }), context);
 
 beforeEach(() => {
-  vi.resetAllMocks(); Object.assign(mock.actor, { id: "cashier1", role: "CASHIER" });
+  vi.resetAllMocks(); Object.assign(mock.actor, { id: "cashier1", role: "CASHIER", canCollectCash: false });
   mock.db.$transaction.mockImplementation(async (callback: (tx: typeof mock.db) => unknown) => callback(mock.db));
   mock.db.$queryRaw.mockResolvedValue([{ status: "OPEN" }]);
   mock.db.paymentEvent.findUnique.mockResolvedValue(payment);
@@ -41,6 +41,18 @@ beforeEach(() => {
 });
 
 describe("driver cash handovers (mocked database)", () => {
+  it("hides irrelevant cash controls but retains access for permissions, pending cash or historical handovers", async () => {
+    Object.assign(mock.actor, { id: "driver1", role: "DRIVER" });
+    expect((await (await GET()).json()).visible).toBe(false);
+    mock.actor.canCollectCash = true;
+    expect((await (await GET()).json()).visible).toBe(true);
+    mock.actor.canCollectCash = false;
+    mock.db.paymentEvent.aggregate.mockResolvedValue({ _sum: { amountCents: 2898 }, _count: { _all: 1 } });
+    expect((await (await GET()).json()).visible).toBe(true);
+    mock.db.paymentEvent.aggregate.mockResolvedValue({ _sum: { amountCents: 0 }, _count: { _all: 0 } });
+    mock.db.driverCashHandover.findMany.mockResolvedValue([{ id: "handover1", driverName: "Luis", receivedByName: "Ana", amountCents: 2898, createdAt: new Date(), paymentEvent: { order: { dailyNumber: 2, businessDate: "2026-09-02" } } }]);
+    expect((await (await GET()).json()).visible).toBe(true);
+  });
   it("records custody and audit without creating a second payment", async () => {
     await confirmCashHandover("payment1", mock.actor);
     expect(mock.db.driverCashHandover.create).toHaveBeenCalledWith({ data: { paymentEventId: "payment1", driverId: "driver1", driverName: "Luis Repartidor", receivedById: "cashier1", receivedByName: "Ana Cajera", amountCents: 1574 } });

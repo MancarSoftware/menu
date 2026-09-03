@@ -26,6 +26,15 @@ Local compilation uses `npm run build:local` so a developer does not accidentall
 
 ## Delivery feature: staging verification
 
+### Workflow and audit refinement (no new migration)
+
+- This refinement changes UI, server authorization and audit presentation only; no new environment variables or database migration are required beyond the existing project migrations.
+- GPS and a manually confirmed map pin are both coordinate destinations. The written address is a reference. Existing orders without coordinates remain explicitly labeled legacy orders; they are not silently backfilled or labeled GPS-verified. Pickup remains location-free.
+- Verify with separate driver, cashier and administrator accounts: only the assigned driver can normally dispatch, confirm delivery or report an issue. Cashiers retain assignment/retry/collection responsibilities. Admin exceptions must use the separate intervention form and supply a reason; stale versions and invalid delivery states still fail.
+- Audit GET is admin-only, paginated at 25 events, filtered by Ecuador-local date, actor and action; an order-specific filter includes its linked payment/cash-handover events. The response exposes readable, whitelisted details instead of raw metadata. Original AuditLog records remain unchanged; legacy email actor labels resolve to staff names where possible, otherwise a neutral label.
+- The driver cash tab is visible for cash permission, pending custody or historical handovers, including after cash permission is revoked. Confirming custody remains restricted to cashier/admin and does not record another sale.
+- Local regression tests mock persistence. Before promotion, repeat the complete workflow on the disposable staging database and real phones (GPS permission, network loss, directions, two simultaneous sessions). Local UI review is not a live staging acceptance test.
+
 1. Confirm the Vercel `staging` preview's `DATABASE_URL` targets the **staging Neon branch**, not production. Do not run migrations or database integration tests with production credentials in a local `.env`.
 2. Commit and push the feature to `staging` when ready. The existing build applies `20260902010000_delivery_assignment_and_location` before compiling. It adds nullable coordinates, driver assignment, delivery progress and a per-driver cash permission; it also updates the staff-role database constraint. Existing completed deliveries are marked delivered without inventing coordinates.
 3. In the staging admin, create a Repartidor. Sign in with that account in a separate browser/device. Verify it sees no unassigned/other-driver orders and cannot access kitchen, staff or reporting APIs.

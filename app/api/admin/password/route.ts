@@ -19,7 +19,7 @@ export async function PATCH(request: NextRequest) {
     const passwordHash = await hash(input.newPassword, 12);
     await db.$transaction([
       db.adminUser.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: false, passwordChangedAt: new Date() } }),
-      db.auditLog.create({ data: { actorUserId: user.id, actorName: user.email, action: "PASSWORD_CHANGED", entityType: "AdminUser", entityId: user.id } }),
+      db.auditLog.create({ data: { actorUserId: user.id, actorName: user.name, action: "PASSWORD_CHANGED", entityType: "AdminUser", entityId: user.id } }),
     ]);
     await createSession(user);
     return NextResponse.json({ ok: true });

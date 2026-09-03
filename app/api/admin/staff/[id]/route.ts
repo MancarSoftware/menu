@@ -25,7 +25,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         if (assigned) return null;
       }
       const updated = await tx.adminUser.update({ where: { id }, data: { ...data, canCollectCash: (input.role ?? current.role) === "DRIVER" ? input.canCollectCash ?? current.canCollectCash : false, canCollectCard: (input.role ?? current.role) === "DRIVER" ? input.canCollectCard ?? current.canCollectCard : false, canCollectTransfer: (input.role ?? current.role) === "DRIVER" ? input.canCollectTransfer ?? current.canCollectTransfer : false } });
-      await tx.auditLog.create({ data: { actorUserId: session.id, actorName: session.email, action: input.password ? "STAFF_PASSWORD_RESET" : "STAFF_UPDATED", entityType: "AdminUser", entityId: id, details: JSON.stringify({ role: input.role, isActive: input.isActive, canCollectCash: updated.canCollectCash, canCollectCard: updated.canCollectCard, canCollectTransfer: updated.canCollectTransfer }) } });
+      await tx.auditLog.create({ data: { actorUserId: session.id, actorName: session.name, action: input.password ? "STAFF_PASSWORD_RESET" : "STAFF_UPDATED", entityType: "AdminUser", entityId: id, details: JSON.stringify({ role: input.role, isActive: input.isActive, canCollectCash: updated.canCollectCash, canCollectCard: updated.canCollectCard, canCollectTransfer: updated.canCollectTransfer }) } });
       return updated;
     });
     if (!user) return NextResponse.json({ error: "Reasigna o cierra los pedidos pendientes del repartidor antes de desactivar o cambiar su rol." }, { status: 409 });

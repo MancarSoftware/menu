@@ -32,8 +32,8 @@ export function CashHandovers({ manager, onReceived }: { manager: boolean; onRec
     finally { busy.current = false; setPending(null); }
   }
   return <section className="cash-handovers" aria-labelledby="handover-title">
-    <header><div><p className="eyebrow">Control de efectivo</p><h2 id="handover-title">{manager ? "Efectivo de repartidores" : "Mi efectivo por entregar"}</h2></div><button type="button" className="button button--line" onClick={() => void load()}>Actualizar entregas</button></header>
-    <p>El cobro ya está incluido en ventas. {manager ? "Confirma solo el dinero que recibiste físicamente. Las entregas se registran por el importe completo de cada cobro." : "Entrega el dinero al cajero; solo caja puede confirmar que lo recibió."}</p>
+    <header><div><p className="eyebrow">Control de efectivo</p><h2 id="handover-title">{manager ? "Efectivo de repartidores" : "Efectivo por entregar a caja"}</h2></div><button type="button" className="button button--line" onClick={() => void load()}>Actualizar entregas</button></header>
+    <p>El cobro ya está incluido en ventas. {manager ? "Confirma solo el dinero que recibiste físicamente. Las entregas se registran por el importe completo de cada cobro." : "Es dinero del restaurante, no tus ganancias. Entrégalo al cajero; solo caja puede confirmar que lo recibió. No se registra otra venta."}</p>
     {error && <p className="admin-inline-message" role="alert">{error} Los datos pueden estar desactualizados.</p>}
     {notice && <p role="status">{notice}</p>}
     {!feed && !error && <p role="status">Consultando efectivo…</p>}

@@ -68,7 +68,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         });
       }
       await transaction.auditLog.create({
-        data: { actorUserId: session.id, actorName: staffDisplayName(session.name), action: input.status === "PAID" ? "ORDER_PAYMENT_RECORDED" : "ORDER_STATUS_CHANGED", entityType: "CustomerOrder", entityId: String(orderId), details: JSON.stringify({ from: current.status, to: input.status, paymentMethod: input.paymentMethod, reason: input.reason }) },
+        data: { actorUserId: session.id, actorName: staffDisplayName(session.name), action: input.status === "PAID" ? "ORDER_PAYMENT_RECORDED" : "ORDER_STATUS_CHANGED", entityType: "CustomerOrder", entityId: String(orderId), details: JSON.stringify({ orderNumber: current.dailyNumber, businessDate: current.businessDate, from: current.status, to: input.status, paymentMethod: input.paymentMethod, reason: input.reason, ...(input.status === "PAID" ? { amountCents: current.totalCents } : {}) }) },
       });
       if (["PAID", "CANCELLED"].includes(input.status) && current.diningTableId) {
         const remaining = await transaction.customerOrder.count({ where: { diningTableId: current.diningTableId, id: { not: orderId }, status: { notIn: ["PAID", "CANCELLED"] } } });

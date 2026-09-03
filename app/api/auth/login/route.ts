@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       createSession(user),
       db.adminUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }),
       db.loginThrottle.deleteMany({ where: { key: throttleKey } }),
-      db.auditLog.create({ data: { actorUserId: user.id, actorName: user.email, action: "AUTH_LOGIN", entityType: "AdminUser", entityId: user.id } }),
+      db.auditLog.create({ data: { actorUserId: user.id, actorName: user.name, action: "AUTH_LOGIN", entityType: "AdminUser", entityId: user.id } }),
     ]);
     return NextResponse.json({ ok: true, mustChangePassword: user.mustChangePassword });
   } catch (error) { return apiError(error); }
