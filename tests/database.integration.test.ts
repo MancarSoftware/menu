@@ -16,6 +16,31 @@ describe("database persistence", () => {
     const categories = await db.menuCategory.findMany({ where: { isActive: true }, orderBy: { displayOrder: "asc" } });
     expect(categories.map((category) => category.displayOrder)).toEqual([...categories.map((category) => category.displayOrder)].sort((a, b) => a - b));
   });
+  it("enforces customer phone digits on direct inserts and updates while retaining leading zeros", async () => {
+    const rollback = new Error("Rollback phone integration fixture");
+    const data = { clientRequestId: crypto.randomUUID(), dailyNumber: 2147483647, businessDate: "2099-12-31", mode: "PICKUP", subtotalCents: 100, totalCents: 100 };
+    await expect(db.$transaction(async (tx) => {
+      const created = await tx.customerOrder.create({ data: { ...data, customerPhone: "0999999999" } });
+      expect(created.customerPhone).toBe("0999999999");
+      await tx.customerOrder.update({ where: { id: created.id }, data: { status: "PREPARING" } });
+      throw rollback;
+    })).rejects.toBe(rollback);
+    for (const customerPhone of ["099999999", "09999999999", "099 9999999", null]) {
+      await expect(db.$transaction(async (tx) => {
+        await tx.customerOrder.create({ data: { ...data, customerPhone } });
+        throw rollback;
+      })).rejects.toThrow("exactamente 10 dígitos");
+    }
+    await expect(db.$transaction(async (tx) => {
+      const created = await tx.customerOrder.create({ data: { ...data, customerPhone: "0999999999" } });
+      await tx.customerOrder.update({ where: { id: created.id }, data: { customerPhone: "123" } });
+      throw rollback;
+    })).rejects.toThrow("exactamente 10 dígitos");
+    await expect(db.$transaction(async (tx) => {
+      await tx.customerOrder.create({ data: { ...data, mode: "DINE_IN", customerPhone: null } });
+      throw rollback;
+    })).rejects.toBe(rollback);
+  });
   it("persists category create and update operations", async () => {
     const created = await db.menuCategory.create({ data: { name: "Categoría temporal", slug, description: "Registro de integración", displayOrder: 999, isActive: false } });
     id = created.id;

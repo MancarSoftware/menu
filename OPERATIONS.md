@@ -10,6 +10,12 @@
 
 ## Deployment and migrations
 
+### Customer phone length
+
+Migration `20260908000000_customer_phone_ten_digits` adds a database trigger requiring exactly 10 ASCII digits on new or changed customer phone numbers. Delivery/pickup require a phone; dine-in may omit it. Phone storage remains text to preserve leading zeros. Historical phone values are untouched, and their kitchen/payment updates remain valid; changing the historical phone or order mode requires the new format. The public API independently rejects invalid phone values, including country codes and separators. Restaurant contact and WhatsApp configuration keep their existing formats.
+
+Apply through the staging deployment first. Do not run migrations with a production-backed local `.env`. Verify 9/11 digits are rejected, 10 digits with a leading zero are preserved, and legacy orders can still advance through delivery/payment. No additional environment variables are required.
+
 The Vercel build command is `npm run build`. It generates Prisma Client, runs pending migrations with `prisma migrate deploy`, and builds Next.js. A failed migration stops deployment before the new version receives traffic. Test every migration on `staging` before merging to `main`.
 
 Local compilation uses `npm run build:local` so a developer does not accidentally migrate the database referenced by the local `.env`.

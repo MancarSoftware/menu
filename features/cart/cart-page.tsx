@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import type { DeliveryPoint, OrderView } from "@/lib/domain";
 import { DeliveryLocationPicker } from "./delivery-location-picker";
 import { formatPrice } from "@/lib/format";
+import { CUSTOMER_PHONE_HELP, CUSTOMER_PHONE_LENGTH, CUSTOMER_PHONE_PATTERN } from "@/lib/customer-phone";
 import { activeOrderStatusLabel, useCart } from "./cart-context";
 
 const deliveryFeeCents = 250;
@@ -28,7 +29,7 @@ export function CartPage({ pickupAddress, city, dineInTable, locationCenter }: {
   const requestId = useRef("");
   const serviceFeeCents = fulfillment === "delivery" ? deliveryFeeCents : 0;
   const finalTotal = entries.length ? totalCents + serviceFeeCents : 0;
-  const canOrder = entries.length > 0 && customerName.trim().length >= 2 && /^\+?[0-9\s-]{7,20}$/.test(customerPhone.trim()) && (fulfillment !== "delivery" || !!deliveryPoint);
+  const canOrder = entries.length > 0 && customerName.trim().length >= 2 && CUSTOMER_PHONE_PATTERN.test(customerPhone) && (fulfillment !== "delivery" || !!deliveryPoint);
 
   async function submitDineInOrder() {
     if (!dineInTable || pending || !entries.length) return;
@@ -115,7 +116,7 @@ export function CartPage({ pickupAddress, city, dineInTable, locationCenter }: {
           </>}
         </div>
 
-        {fulfillment !== "dine-in" && <div className="checkout-fields checkout-fields--customer"><label>Nombre<input required minLength={2} maxLength={100} value={customerName} onChange={(event) => setCustomerName(event.target.value)} autoComplete="name" /></label><label>Teléfono<input required inputMode="tel" minLength={7} maxLength={20} value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value.replace(/[^0-9+\s-]/g, ""))} autoComplete="tel" /></label></div>}
+        {fulfillment !== "dine-in" && <div className="checkout-fields checkout-fields--customer"><label>Nombre<input required minLength={2} maxLength={100} value={customerName} onChange={(event) => setCustomerName(event.target.value)} autoComplete="name" /></label><div><label htmlFor="customer-phone">Teléfono</label><input id="customer-phone" type="tel" required inputMode="numeric" minLength={CUSTOMER_PHONE_LENGTH} maxLength={CUSTOMER_PHONE_LENGTH} pattern="[0-9]{10}" value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value.replace(/[^0-9]/g, "").slice(0, CUSTOMER_PHONE_LENGTH))} autoComplete="tel-national" aria-describedby="customer-phone-help" aria-invalid={customerPhone.length > 0 && !CUSTOMER_PHONE_PATTERN.test(customerPhone)} /><small id="customer-phone-help">{CUSTOMER_PHONE_HELP}</small></div></div>}
         {fulfillment === "delivery" ? <div className="checkout-fields">
           <DeliveryLocationPicker center={locationCenter} value={deliveryPoint} onChange={setDeliveryPoint} />
           <label>Referencia de entrega (opcional)<input maxLength={240} value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Edificio, piso, puerta o indicaciones para llegar" autoComplete="off" /><small>Solo ayuda a identificar la entrada. El repartidor seguirá el punto confirmado del mapa.</small></label>

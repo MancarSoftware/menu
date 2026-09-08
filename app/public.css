@@ -345,7 +345,9 @@
 .order-connection { padding: .7rem; display: flex; gap: .5rem; border-left: 3px solid var(--fast-orange); background: #fff; color: var(--fast-muted); font-size: .64rem; }
 .order-connection svg { width: .9rem; }
 .checkout-fields { margin-top: 1rem; display: grid; gap: 1rem; }
-.checkout-fields--customer { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.checkout-fields--customer { grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; }
+.checkout-fields--customer > div { display: grid; align-content: start; gap: .45rem; min-width: 0; }
+.checkout-fields--customer small { font-size: .75rem; }
 .checkout-fields label, .contact-form label { display: grid; gap: .45rem; font-size: .8rem; font-weight: 500; }
 .checkout-fields input, .checkout-fields textarea, .contact-form input, .contact-form textarea { width: 100%; min-height: 52px; padding: .85rem 1rem; border: 2px solid var(--fast-ink); border-radius: 4px; background: #fff; color: var(--fast-ink); outline: 0; resize: vertical; }
 .checkout-fields textarea, .contact-form textarea { line-height: 1.5; }

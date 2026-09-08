@@ -30,4 +30,13 @@ describe("runtime validation", () => {
     expect(passwordSchema.safeParse("weak-password").success).toBe(false);
     expect(passwordSchema.safeParse("SecureAccess2026").success).toBe(true);
   });
+  it.each(["DELIVERY", "PICKUP"])("requires exactly 10 numeric phone digits for %s", (mode) => {
+    const input = { clientRequestId: crypto.randomUUID(), mode, customerName: "Ana", deliveryPoint: { latitude: 0, longitude: 0 }, items: [{ productId: "burger", quantity: 1 }] };
+    for (const customerPhone of ["", "099999999", "09999999999", "+593999999999", "099 9999999", "099-9999999", "abcdefghij", "０９９９９９９９９９", "0999999999\n", " 0999999999", null, 9999999999]) {
+      const result = publicOrderSchema.safeParse({ ...input, customerPhone });
+      expect(result.success, `Unexpected phone acceptance: ${JSON.stringify(customerPhone)}`).toBe(false);
+    }
+    const result = publicOrderSchema.parse({ ...input, customerPhone: "0999999999" });
+    expect(result.customerPhone).toBe("0999999999");
+  });
 });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { productOptionsSchema } from "./product-customization";
+import { CUSTOMER_PHONE_HELP, CUSTOMER_PHONE_PATTERN } from "./customer-phone";
 
 const stringList = z.array(z.string().trim().min(1).max(80)).max(20).default([]);
 
@@ -85,7 +86,7 @@ export const dineInOrderSchema = z.object({
 export const publicOrderSchema = dineInOrderSchema.extend({
   mode: z.enum(["DELIVERY", "PICKUP"]),
   customerName: z.string().trim().min(2).max(100),
-  customerPhone: z.string().trim().regex(/^\+?[0-9\s-]{7,20}$/),
+  customerPhone: z.string().regex(CUSTOMER_PHONE_PATTERN, CUSTOMER_PHONE_HELP),
   deliveryAddress: z.string().trim().max(240).optional().default(""),
   deliveryPoint: deliveryPointSchema.optional(),
 }).refine((value) => value.mode !== "DELIVERY" || !!value.deliveryPoint, {
