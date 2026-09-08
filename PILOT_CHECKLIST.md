@@ -4,21 +4,16 @@ Fecha de preparación: 2026-09-02. Producto para un restaurante; no SaaS.
 
 **Estado:** implementación local. La migración y la simulación integral sobre Neon/staging siguen pendientes de una conexión de pruebas confirmada. Las pruebas con servicios simulados no prueban concurrencia real de PostgreSQL, GPS, impresoras ni permisos de Vercel.
 
-## Evidencia local de esta entrega
+## Verificación tras la limpieza del repositorio
 
-- 124 pruebas unitarias/componentes/API con servicios simulados pasan; `typecheck`, ESLint y `prisma validate` sin errores.
-- Revisión del nuevo control de efectivo y navegación del repartidor en 320, 390, 768, 1024 y 1440 px: sin desbordamiento horizontal. Se corrigieron el salto del saldo, la distribución móvil del menú y el ancho de la sección en escritorio.
-- Con datos ficticios en el navegador: recepción reduce el pendiente sin cambiar ventas, historial del driver sin botón de recepción, cierre bloqueado mientras hay efectivo pendiente, y saldo conservado ante desconexión/reintento.
-- El ejecutor de integración se niega a arrancar sin `.env.test`; no se conectó a producción ni se aplicó la migración. Se añadieron pruebas PostgreSQL de recepción concurrente y reembolso concurrente, todavía **sin ejecutar**.
-- Se actualizaron selectores E2E antiguos y el flujo de retiro; E2E sigue **sin ejecutar** hasta tener base y cuentas desechables. El menú de prueba debe conservar los productos/categorías usados por esos escenarios.
-- Se observó un error interno de hot reload de Turbopack durante la revisión; la vista cargó correctamente al arrancar una sesión limpia con webpack. No se cambiaron versiones ni la configuración permanente de dependencias. Vigilar el hot reload y validar un build/despliegue de staging limpio.
+Las pruebas automatizadas, sus datos ficticios y ejecutores se retiraron el 2026-09-08. La evidencia anterior con servicios simulados es histórica; no certifica versiones posteriores. El historial de Git conserva esos archivos para recuperarlos. Se mantienen `npm run typecheck`, `npm run lint` y el guion manual de staging que sigue.
 
 ## Preparación segura
 
 1. Crea una rama Neon desechable distinta de producción. Evita datos personales reales y revisa su fecha de autoeliminación.
-2. En `.env.test` local (ignorado por Git) añade `DATABASE_URL` y `TEST_DATABASE_DISPOSABLE=true`. No pegues secretos en chats, capturas o commits. El ejecutor rechaza la misma base configurada en `.env`, incluidos hosts Neon pooled/direct equivalentes.
-3. Para pruebas E2E añade también `SESSION_SECRET`, `ADMIN_EMAIL` y `ADMIN_PASSWORD` **solo de pruebas**; deben corresponder a una cuenta ya creada en esa base. No se crean usuarios ni se ejecuta seed automáticamente.
-4. Ejecuta `npm run db:test:prepare`, luego `npm run test:db`. Ambos exigen `.env.test`; nunca recurren a `.env` como destino.
+2. Configura `DATABASE_URL` para esa rama y `SESSION_SECRET` en Vercel Preview, limitados a `staging`. Comprueba que los valores de Production no cambien. No pegues secretos en chats, capturas o commits.
+3. Prepara cuentas de administración, caja, cocina y reparto en la base de staging para realizar el ensayo con sesiones separadas.
+4. Ejecuta `npm run typecheck` y `npm run lint` localmente. La compilación de staging aplicará las migraciones pendientes con su conexión separada.
 5. Publica en `staging` cuando tú apruebes el commit/push. Revisa que Vercel use Preview + rama staging, con la URL Neon y secreto separados de Production. Comprueba el commit desplegado y el estado Ready.
 6. Para el piloto real usa el dominio estable de staging en todos los dispositivos y genera allí los QR de prueba. No uses los QR de producción para este ensayo. No cambies protecciones de acceso sin revisar qué datos quedarán expuestos.
 

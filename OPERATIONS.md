@@ -28,7 +28,7 @@ Local compilation uses `npm run build:local` so a developer does not accidentall
 - Remove an option while another browser has it in a pending cart. Checkout must reject the obsolete selection with instructions to add the product again. Already submitted orders must retain their original snapshot. Other products must remain unchanged.
 - The first size must have a zero surcharge (base product); optional groups have no minimum. A limit of zero hides its group. Sauces are free; paid sauces belong in Extras. Each group supports up to 20 choices. No inventory consumption or modifier-level stock tracking is added.
 - New carts encode selections as versioned JSON, supporting names containing `+` and `|`. The server continues accepting valid legacy cart keys, validates choices against the current product configuration and computes prices itself.
-- Local option/API tests use mocked persistence. Confirm the real save/reload flow in the disposable staging database before production rollout.
+- Confirm the real save/reload flow in the disposable staging database before production rollout.
 
 ## Delivery feature: staging verification
 
@@ -39,7 +39,7 @@ Local compilation uses `npm run build:local` so a developer does not accidentall
 - Verify with separate driver, cashier and administrator accounts: only the assigned driver can normally dispatch, confirm delivery or report an issue. Cashiers retain assignment/retry/collection responsibilities. Admin exceptions must use the separate intervention form and supply a reason; stale versions and invalid delivery states still fail.
 - Audit GET is admin-only, paginated at 25 events, filtered by Ecuador-local date, actor and action; an order-specific filter includes its linked payment/cash-handover events. The response exposes readable, whitelisted details instead of raw metadata. Original AuditLog records remain unchanged; legacy email actor labels resolve to staff names where possible, otherwise a neutral label.
 - The driver cash tab is visible for cash permission, pending custody or historical handovers, including after cash permission is revoked. Confirming custody remains restricted to cashier/admin and does not record another sale.
-- Local regression tests mock persistence. Before promotion, repeat the complete workflow on the disposable staging database and real phones (GPS permission, network loss, directions, two simultaneous sessions). Local UI review is not a live staging acceptance test.
+- Before promotion, repeat the complete workflow on the disposable staging database and real phones (GPS permission, network loss, directions, two simultaneous sessions). Local UI review is not a live staging acceptance test.
 
 1. Confirm the Vercel `staging` preview's `DATABASE_URL` targets the **staging Neon branch**, not production. Do not run migrations or database integration tests with production credentials in a local `.env`.
 2. Commit and push the feature to `staging` when ready. The existing build applies `20260902010000_delivery_assignment_and_location` before compiling. It adds nullable coordinates, driver assignment, delivery progress and a per-driver cash permission; it also updates the staff-role database constraint. Existing completed deliveries are marked delivered without inventing coordinates.
@@ -50,7 +50,7 @@ Local compilation uses `npm run build:local` so a developer does not accidentall
 7. Validate the map and driver layout at phone widths (320/390/768 px), keyboard navigation, and real-device GPS. Public OSM tiles are best-effort, not an SLA-backed navigation service; choose a suitable provider before higher-volume production use.
 8. Only merge to `main` after the staging checks. Production and staging remain separate; this feature does not introduce SaaS tenancy.
 
-The unit/component tests in `tests/delivery*.test.ts` use mock location and database services and are safe without a test database. They do **not** replace applying the migration and running the real-device staging flow. `tests/database.integration.test.ts` performs writes and requires an isolated disposable database.
+Automated tests and their runners were removed during repository cleanup. Follow the manual staging checks above; type checks and lint alone do not verify delivery, payments or database concurrency. Previous test coverage remains recoverable from Git history.
 
 ## Driver collections and receipts: release checks
 

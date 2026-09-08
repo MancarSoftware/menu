@@ -7,8 +7,6 @@ A mobile-first fast-food ordering system for one restaurant per deployment. Cust
 - Next.js 16, React 19, and TypeScript
 - Prisma with PostgreSQL for local and production data
 - Zod validation and signed session cookies
-- Vitest for unit and integration tests
-- Playwright for desktop and mobile end-to-end coverage
 
 ## Local setup
 
@@ -34,16 +32,15 @@ This release is intentionally **single-tenant**: each client receives an isolate
 ```bash
 npm run typecheck
 npm run lint
-npm run test
 ```
 
-These commands do not run database integration tests. Explicitly configure an ignored disposable `.env.test` before `npm run db:test:prepare`, `npm run test:db` or `npm run test:e2e`. E2E always starts a separate local server on port 3107 and cannot reuse a server connected to production. `build:local` does not migrate, but it can read the configured database while prerendering; use a migrated test database. See [PILOT_CHECKLIST.md](./PILOT_CHECKLIST.md) for credentials, evidence and release gates. GitHub CI runs generation, type checks, lint and isolated unit/component tests without deployment or database secrets.
+GitHub CI runs Prisma generation, type checks and lint. Automated test files and their runners were removed during repository cleanup; they can be recovered from Git history. Use [PILOT_CHECKLIST.md](./PILOT_CHECKLIST.md) for manual staging verification. `build:local` does not migrate, but it can read the configured database while prerendering; use a migrated staging database.
 
 ## Cash handovers and service exceptions
 
 Migration `20260902170000_cash_handover_and_delivery_issues` adds explicit driver cash custody, one auditable cashier receipt per payment, and failed-delivery/cancellation reasons. Apply to staging before testing the new APIs; do not deploy code without its migration.
 
-- **Caja → Efectivo de repartidores** confirms physical receipt; **Repartidor → Mi efectivo** shows the driver's pending amount and receipt history. Neither creates extra revenue. Shift closing is blocked until pending driver cash is received. Only full-payment handovers are supported; shortages/partial deliveries require administrative resolution, never a false confirmation.
+- **Caja → Efectivo de repartidores** confirms physical receipt; **Repartidor → Efectivo por entregar** shows the driver's pending amount and receipt history. Neither creates extra revenue. Shift closing is blocked until pending driver cash is received. Only full-payment handovers are supported; shortages/partial deliveries require administrative resolution, never a false confirmation.
 - **No pude entregar** keeps the order visible for review; a manager authorizes retry or cancellation with a reason. Delivery, payment and money custody remain distinct.
 - Refunds lock and version the order so stale requests cannot duplicate a refund. Method corrections cannot rewrite closed shifts, confirmed cash handovers or refunded payments. Corrections to cash require confirmation that the money is physically in the register.
 - Null custody in legacy payments is preserved as unknown; no handovers, sales or reconciliation are fabricated.

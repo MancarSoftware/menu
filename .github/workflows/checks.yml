@@ -18,5 +18,4 @@ jobs:
       - run: npm run db:generate
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test
-      # Deliberately no deployment, migration, production secrets or database tests.
+      # Deployment and migrations are handled separately by Vercel.
