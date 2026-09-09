@@ -24,12 +24,19 @@ export class OrderInputError extends Error {
   constructor(message: string, public status = 400) { super(message); }
 }
 
-export async function createCustomerOrder(input: CreateOrderInput) {
-  const previous = await db.customerOrder.findUnique({ where: { clientRequestId: input.clientRequestId }, include: orderInclude });
-  if (previous) {
-    if (previous.mode !== input.mode || previous.diningTableId !== (input.diningTableId ?? null)) throw new OrderInputError("Identificador de pedido no válido.", 409);
-    return { order: previous, created: false };
+const MAX_TRANSACTION_ATTEMPTS = 4;
+
+async function findPreviousOrder(input: CreateOrderInput) {
+  const order = await db.customerOrder.findUnique({ where: { clientRequestId: input.clientRequestId }, include: orderInclude });
+  if (order && (order.mode !== input.mode || order.diningTableId !== (input.diningTableId ?? null))) {
+    throw new OrderInputError("Identificador de pedido no válido.", 409);
   }
+  return order;
+}
+
+export async function createCustomerOrder(input: CreateOrderInput) {
+  const previous = await findPreviousOrder(input);
+  if (previous) return { order: previous, created: false };
 
   const productIds = [...new Set(input.items.map((item) => item.productId))];
   const products = await db.menuItem.findMany({
@@ -61,44 +68,73 @@ export async function createCustomerOrder(input: CreateOrderInput) {
   const serviceFeeCents = input.mode === "DELIVERY" ? 250 : 0;
   const businessDate = getBusinessDate();
 
-  try {
-    const order = await db.$transaction(async (transaction) => {
-      const counter = await transaction.dailyOrderCounter.upsert({
-        where: { businessDate },
-        create: { businessDate, lastNumber: 1 },
-        update: { lastNumber: { increment: 1 } },
-      });
-      const created = await transaction.customerOrder.create({
-        data: {
-          clientRequestId: input.clientRequestId,
-          dailyNumber: counter.lastNumber,
-          businessDate,
-          diningTableId: input.diningTableId,
-          mode: input.mode,
-          status: "RECEIVED",
-          subtotalCents,
-          serviceFeeCents,
-          totalCents: subtotalCents + serviceFeeCents,
-          notes: input.notes,
-          customerName: input.customerName,
-          customerPhone: input.customerPhone,
-          deliveryAddress: input.mode === "DELIVERY" ? input.deliveryAddress : null,
-          deliveryLatitude: input.mode === "DELIVERY" ? input.deliveryPoint?.latitude : null,
-          deliveryLongitude: input.mode === "DELIVERY" ? input.deliveryPoint?.longitude : null,
-          items: { create: validItems },
-          statusHistory: { create: { status: "RECEIVED", actor: "CUSTOMER" } },
-        },
-        include: orderInclude,
-      });
-      if (input.diningTableId) await transaction.diningTable.update({ where: { id: input.diningTableId }, data: { status: "OCCUPIED" } });
-      return created;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-    return { order, created: true };
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      const existing = await db.customerOrder.findUnique({ where: { clientRequestId: input.clientRequestId }, include: orderInclude });
-      if (existing) return { order: existing, created: false };
+  for (let attempt = 0; attempt < MAX_TRANSACTION_ATTEMPTS; attempt += 1) {
+    try {
+      const createdOrder = await db.$transaction(async (transaction) => {
+        // One statement keeps the counter lock short even with a remote database.
+        // All inserts and the table update roll back together on any constraint error.
+        // ReadCommitted lets queued increments see the latest committed counter.
+        const [created] = await transaction.$queryRaw<{ id: number }[]>`
+          WITH counter AS (
+            INSERT INTO "DailyOrderCounter" ("businessDate", "lastNumber", "updatedAt")
+            VALUES (${businessDate}, 1, CURRENT_TIMESTAMP)
+            ON CONFLICT ("businessDate") DO UPDATE
+            SET "lastNumber" = "DailyOrderCounter"."lastNumber" + 1,
+                "updatedAt" = CURRENT_TIMESTAMP
+            RETURNING "lastNumber"
+          ), new_order AS (
+            INSERT INTO "CustomerOrder" (
+              "publicId", "clientRequestId", "dailyNumber", "businessDate", "diningTableId",
+              "mode", "status", "subtotalCents", "serviceFeeCents", "totalCents", "notes",
+              "customerName", "customerPhone", "deliveryAddress", "deliveryLatitude", "deliveryLongitude", "updatedAt"
+            )
+            SELECT gen_random_uuid()::text, ${input.clientRequestId}, "lastNumber", ${businessDate}, ${input.diningTableId ?? null},
+              ${input.mode}, 'RECEIVED', ${subtotalCents}, ${serviceFeeCents}, ${subtotalCents + serviceFeeCents}, ${input.notes},
+              ${input.customerName ?? null}, ${input.customerPhone ?? null},
+              ${input.mode === "DELIVERY" ? input.deliveryAddress ?? null : null},
+              ${input.mode === "DELIVERY" ? input.deliveryPoint?.latitude ?? null : null},
+              ${input.mode === "DELIVERY" ? input.deliveryPoint?.longitude ?? null : null}, CURRENT_TIMESTAMP
+            FROM counter
+            RETURNING "id"
+          ), new_items AS (
+            INSERT INTO "OrderItem" (
+              "id", "orderId", "productId", "productName", "quantity", "basePriceCents",
+              "extraPriceCents", "unitPriceCents", "lineTotalCents", "customization"
+            )
+            SELECT gen_random_uuid()::text, new_order."id", item.*
+            FROM new_order CROSS JOIN jsonb_to_recordset(${JSON.stringify(validItems)}::jsonb) AS item(
+              "productId" text, "productName" text, "quantity" integer, "basePriceCents" integer,
+              "extraPriceCents" integer, "unitPriceCents" integer, "lineTotalCents" integer, "customization" text
+            )
+          ), initial_history AS (
+            INSERT INTO "OrderStatusHistory" ("id", "orderId", "status", "actor")
+            SELECT gen_random_uuid()::text, "id", 'RECEIVED', 'CUSTOMER' FROM new_order
+          ), occupied_table AS (
+            UPDATE "DiningTable" SET "status" = 'OCCUPIED', "updatedAt" = CURRENT_TIMESTAMP
+            WHERE "id" = ${input.diningTableId ?? null} AND EXISTS (SELECT 1 FROM new_order)
+          )
+          SELECT "id" FROM new_order
+        `;
+        return created;
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 5000, timeout: 15000 });
+      // Load the response after commit so relation reads do not hold the counter lock.
+      const order = await db.customerOrder.findUniqueOrThrow({ where: { id: createdOrder.id }, include: orderInclude });
+      return { order, created: true };
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError)) throw error;
+      // Raw SQL reports SQLSTATE via P2010; Prisma-managed transactions may use P2034.
+      const sqlState = error.code === "P2010" ? String(error.meta?.code) : null;
+      const conflict = error.code === "P2034" || sqlState === "40001" || sqlState === "40P01";
+      if (error.code === "P2002" || sqlState === "23505" || conflict) {
+        const existing = await findPreviousOrder(input);
+        if (existing) return { order: existing, created: false };
+      }
+      if (!conflict) throw error;
+      if (attempt === MAX_TRANSACTION_ATTEMPTS - 1) {
+        throw new OrderInputError("Hay muchos pedidos al mismo tiempo. Espera unos segundos y vuelve a intentar sin cambiar tu pedido.", 503);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt + Math.floor(Math.random() * 50)));
     }
-    throw error;
   }
+  throw new OrderInputError("No pudimos registrar el pedido. Vuelve a intentarlo.", 503);
 }

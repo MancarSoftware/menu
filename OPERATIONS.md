@@ -10,6 +10,14 @@
 
 ## Deployment and migrations
 
+### Concurrent orders and refunds
+
+Migration `20260909180000_allow_refund_payment_statuses` expands the payment-status constraint to permit partial and full refunds without rewriting historical records. Apply it to verified staging before refund regression checks; production remains unchanged until the normal approved deployment.
+
+Order creation now increments the daily counter with an atomic PostgreSQL upsert at ReadCommitted isolation. One parameterized SQL statement inserts the order, items and initial history and updates the table, avoiding network round trips while holding the counter lock. The unique request ID still prevents duplicates; new public/order-item/history IDs are opaque UUID strings, while existing IDs remain valid. Response relation reads run after commit. Deadlocks/write conflicts receive at most four attempts with jitter; exhausted retries return a recoverable 503. Retrying must preserve `clientRequestId`.
+
+Before promotion, verify simultaneous unique submissions, concurrent retries of the same request ID (including mismatched table/mode), unique daily numbers and counter rollback, partial/full refunds, concurrent refund attempts, and agreement between the payment ledger, revenue and cash closing. Backend integration results do not certify deployed Vercel/browser capacity.
+
 ### Customer phone length
 
 Migration `20260908000000_customer_phone_ten_digits` adds a database trigger requiring exactly 10 ASCII digits on new or changed customer phone numbers. Delivery/pickup require a phone; dine-in may omit it. Phone storage remains text to preserve leading zeros. Historical phone values are untouched, and their kitchen/payment updates remain valid; changing the historical phone or order mode requires the new format. The public API independently rejects invalid phone values, including country codes and separators. Restaurant contact and WhatsApp configuration keep their existing formats.
