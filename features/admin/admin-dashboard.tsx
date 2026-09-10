@@ -72,7 +72,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
       const result = await requestJson<{ metrics: AdminMetricsView }>(`/api/admin/metrics?date=${encodeURIComponent(date)}`);
       setMetrics(result.metrics);
     } catch (error) {
-      if (error instanceof SessionExpiredError) router.push("/admin/login");
+      if (error instanceof SessionExpiredError) router.push("/login");
     }
   }, [revenueDate, router]);
 
@@ -88,7 +88,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
   async function run(action: () => Promise<void>, success: string) {
     setNotice(null);
     try { await action(); setNotice({ kind: "success", message: success }); router.refresh(); }
-    catch (error) { if (error instanceof SessionExpiredError) router.push("/admin/login"); setNotice({ kind: "error", message: error instanceof Error ? error.message : "Ocurrió un error." }); throw error; }
+    catch (error) { if (error instanceof SessionExpiredError) router.push("/login"); setNotice({ kind: "error", message: error instanceof Error ? error.message : "Ocurrió un error." }); throw error; }
   }
 
   async function logout() {
@@ -97,7 +97,7 @@ export function AdminDashboard({ categories, restaurant, tables, orders, initial
     try {
       await requestJson("/api/auth/logout", "POST");
       try { window.sessionStorage.removeItem(tabStorageKey); } catch { /* Storage may be blocked. */ }
-      router.replace("/admin/login"); router.refresh();
+      router.replace("/login"); router.refresh();
     } catch (error) {
       setNotice({ kind: "error", message: error instanceof Error ? error.message : "No pudimos cerrar la sesión. Inténtalo otra vez." });
       setLoggingOut(false);

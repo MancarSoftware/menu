@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PrintableReport({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
   const session = await getSession();
-  if (!session) redirect("/admin/login");
+  if (!session) redirect("/login");
   if (!["ADMIN", "CASHIER"].includes(session.role)) redirect("/admin");
   const params = await searchParams;
   const from = params.from && isBusinessDate(params.from) ? params.from : getBusinessDate();

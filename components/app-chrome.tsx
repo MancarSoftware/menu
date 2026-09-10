@@ -27,10 +27,10 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { activeOrders, count, forgetOrder, rememberOrder } = useCart();
-  const isAdmin = pathname.startsWith("/admin");
+  const isStaffArea = pathname === "/login" || pathname === "/admin" || pathname.startsWith("/admin/");
 
   useEffect(() => {
-    if (!activeOrders.length || isAdmin) return;
+    if (!activeOrders.length || isStaffArea) return;
     let cancelled = false;
 
     async function reconcileOrders() {
@@ -72,9 +72,9 @@ export function AppChrome({ children }: { children: React.ReactNode }) {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [activeOrders, forgetOrder, isAdmin, pathname, rememberOrder, router]);
+  }, [activeOrders, forgetOrder, isStaffArea, pathname, rememberOrder, router]);
 
-  if (isAdmin) {
+  if (isStaffArea) {
     return <><header className="admin-global-header"><Link href="/"><BrandMark /></Link><div id="admin-header-actions" className="admin-global-header__actions" /></header>{children}</>;
   }
 

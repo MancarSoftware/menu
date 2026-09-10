@@ -9,7 +9,7 @@ export const metadata = { title: "Comprobante de pedido", robots: { index: false
 
 export default async function PrintableReceipt({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
-  if (!session) redirect("/admin/login");
+  if (!session) redirect("/login");
   const receipt = await getOrderReceipt(Number((await params).id), session);
   if (!receipt) notFound();
   return <main id="contenido" className="receipt-print-page"><div className="receipt-print-tools"><a href="/admin">Volver al panel</a><PrintButton /><p>En las opciones de impresión, desactiva «Encabezados y pies de página» para ocultar la URL del navegador.</p></div><ReceiptDocument receipt={receipt} /></main>;

@@ -1,6 +1,6 @@
 # Guía rápida del personal — El Bueno
 
-Este sistema atiende un solo restaurante. Cada persona usa su propia cuenta en `/admin/login`; no compartas contraseñas.
+Este sistema atiende un solo restaurante. Cada persona usa su propia cuenta en `/login`; no compartas contraseñas. El enlace anterior `/admin/login` redirige al nuevo acceso.
 
 ## Antes de abrir
 

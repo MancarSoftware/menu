@@ -41,7 +41,7 @@ export function DeliveryBoard({ manager }: { manager: boolean }) {
       setFeed(result); setLoaded(true); setError("");
     } catch (reason) {
       if (current !== generation.current || request !== latestRequest.current) return;
-      if (reason instanceof SessionExpiredError) router.replace("/admin/login");
+      if (reason instanceof SessionExpiredError) router.replace("/login");
       setError(reason instanceof Error ? reason.message : "No pudimos actualizar los repartos.");
     }
   }, [query, router]);
@@ -86,7 +86,7 @@ export function DeliveryBoard({ manager }: { manager: boolean }) {
     <header className="delivery-board__header"><div><p className="eyebrow">{manager ? "Despacho y seguimiento" : "Tu ruta de trabajo"}</p><h2>{manager ? "Repartos del local" : view === "history" ? "Entregas completadas" : "Entregas pendientes"}</h2><p>{view === "history" ? "Tus entregas y comprobantes, incluso después del cobro." : "Asignación → En camino → Entregado → Cobrado"}</p></div><button type="button" className="button button--line" onClick={() => void refresh()}><RefreshCw aria-hidden="true" />Actualizar</button></header>
     <div className="delivery-board__tabs" role="group" aria-label="Ver entregas"><button type="button" disabled={pending !== null} aria-pressed={view === "active"} onClick={() => changeView("active")}>Pendientes</button><button type="button" disabled={pending !== null} aria-pressed={view === "history"} onClick={() => changeView("history")}>Completadas</button>{view === "history" && <label>Fecha de entrega<input type="date" value={date} disabled={pending !== null} onChange={(event) => { setDate(event.target.value); setPage(1); setLoaded(false); setPaymentId(null); }} /></label>}{date && view === "history" && <button type="button" disabled={pending !== null} onClick={() => { setDate(""); setPage(1); setLoaded(false); }}>Todas las fechas</button>}{view === "history" && !date && <small className="delivery-board__date-help">Mostrando todas las fechas</small>}</div>
     {loaded && <p className="delivery-board__count">{feed.total} {view === "history" ? feed.total === 1 ? "entrega completada" : "entregas completadas" : feed.total === 1 ? "pedido pendiente" : "pedidos pendientes"} · Actualización automática cada 5 s</p>}
-    {error && <p className="admin-inline-message" role="alert">{error} <a href="/admin/login">Revisar acceso</a></p>}
+    {error && <p className="admin-inline-message" role="alert">{error} <a href="/login">Revisar acceso</a></p>}
     {notice && <p className="admin-inline-message" role="status">{notice}</p>}
     {!loaded && !error && <p role="status">Cargando repartos…</p>}
     {manager && view === "active" && loaded && !feed.drivers.length && <p className="admin-inline-message">Crea un usuario con el rol «Repartidor» en Equipo para asignar pedidos.</p>}

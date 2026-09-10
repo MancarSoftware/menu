@@ -19,7 +19,7 @@ npm run db:seed
 npm run dev
 ```
 
-Before migrating or seeding, configure `DATABASE_URL`, then replace the example session secret and administrator password in `.env`. The public site runs at `http://127.0.0.1:3000`; the sign-in screen is at `/admin/login`.
+Before migrating or seeding, configure `DATABASE_URL`, then replace the example session secret and administrator password in `.env`. The public site runs at `http://127.0.0.1:3000`; all staff sign in at `/login`. The old `/admin/login` URL redirects there. Authenticated users continue to `/admin`, which displays the workspace allowed by their role.
 
 Hosted builds run `prisma migrate deploy` automatically before `next build`. Use `npm run build:local` for a local production compilation that must not apply migrations. Keep all database URLs and credentials in local or hosting-platform environment variables; never commit `.env`.
 
@@ -53,7 +53,7 @@ Local development stores uploads in `public/uploads`. Production can use Cloudin
 
 ## Delivery staff and destination
 
-- Create a **Repartidor** in **Equipo**. Drivers sign in at `/admin/login` and see only their assigned deliveries, not the kitchen, reports, menu editor, or other staff accounts. **Pendientes** keeps unfinished/unpaid work visible; **Completadas** retains delivered orders after payment, with a delivery-date filter and pagination.
+- Create a **Repartidor** in **Equipo**. Drivers sign in at `/login` and see only their assigned deliveries, not the kitchen, reports, menu editor, or other staff accounts. **Pendientes** keeps unfinished/unpaid work visible; **Completadas** retains delivered orders after payment, with a delivery-date filter and pagination.
 - **Repartos** lets admins/cashiers assign or reassign an active driver. The kitchen marks an order ready; the driver then selects **Salir a reparto → Confirmar entrega**. Customers see **En camino → Entregado** automatically.
 - Delivery checkout requires a confirmed map point: request GPS permission or choose the destination manually on the map. A written address/reference is optional additional guidance. Pickup and table orders never require a location.
 - Directions open Google Maps with the destination coordinates. The driver's current position is chosen by Google Maps; this app does not track drivers or customers continuously.
