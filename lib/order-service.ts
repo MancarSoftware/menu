@@ -70,11 +70,10 @@ export async function createCustomerOrder(input: CreateOrderInput) {
 
   for (let attempt = 0; attempt < MAX_TRANSACTION_ATTEMPTS; attempt += 1) {
     try {
-      const createdOrder = await db.$transaction(async (transaction) => {
-        // One statement keeps the counter lock short even with a remote database.
-        // All inserts and the table update roll back together on any constraint error.
-        // ReadCommitted lets queued increments see the latest committed counter.
-        const [created] = await transaction.$queryRaw<{ id: number }[]>`
+      // PostgreSQL commits/rolls back this entire statement atomically. An extra
+      // interactive transaction adds connection acquisition and network round trips
+      // while holding the daily counter lock, causing timeouts during checkout bursts.
+      const [createdOrder] = await db.$queryRaw<{ id: number }[]>`
           WITH counter AS (
             INSERT INTO "DailyOrderCounter" ("businessDate", "lastNumber", "updatedAt")
             VALUES (${businessDate}, 1, CURRENT_TIMESTAMP)
@@ -115,8 +114,6 @@ export async function createCustomerOrder(input: CreateOrderInput) {
           )
           SELECT "id" FROM new_order
         `;
-        return created;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 5000, timeout: 15000 });
       // Load the response after commit so relation reads do not hold the counter lock.
       const order = await db.customerOrder.findUniqueOrThrow({ where: { id: createdOrder.id }, include: orderInclude });
       return { order, created: true };

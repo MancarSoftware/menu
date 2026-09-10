@@ -23,6 +23,10 @@ export function apiError(error: unknown) {
     if (error.code === "P2002") return NextResponse.json({ error: "Ese nombre o identificador ya existe." }, { status: 409 });
     if (error.code === "P2003") return NextResponse.json({ error: "No se puede eliminar porque hay elementos relacionados." }, { status: 409 });
     if (error.code === "P2025") return NextResponse.json({ error: "El registro ya no existe." }, { status: 404 });
+    if (error.code === "P2024") {
+      console.warn(JSON.stringify({ level: "warn", event: "database_pool_busy", timestamp: new Date().toISOString() }));
+      return NextResponse.json({ error: "Hay muchas solicitudes al mismo tiempo. Espera unos segundos y vuelve a intentar sin cambiar tu pedido." }, { status: 503, headers: { "Retry-After": "3" } });
+    }
   }
   console.error(JSON.stringify({ level: "error", event: "api_error", message: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined, timestamp: new Date().toISOString() }));
   return NextResponse.json({ error: "No pudimos completar la operación. Inténtalo de nuevo." }, { status: 500 });
