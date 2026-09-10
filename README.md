@@ -19,7 +19,7 @@ npm run db:seed
 npm run dev
 ```
 
-Before migrating or seeding, configure `DATABASE_URL`, then replace the example session secret and administrator password in `.env`. The public site runs at `http://127.0.0.1:3000`; all staff sign in at `/login`. The old `/admin/login` URL redirects there. Authenticated users continue to `/admin`, which displays the workspace allowed by their role.
+Before migrating or seeding, configure `DATABASE_URL`, then replace the example session secret and administrator password in `.env`. The public site runs at `http://127.0.0.1:3000`; all staff sign in exclusively at `/login`. There is no legacy login route or redirect. Authenticated users continue to `/admin`, which displays the workspace allowed by their role.
 
 Hosted builds run `prisma migrate deploy` automatically before `next build`. Use `npm run build:local` for a local production compilation that must not apply migrations. Keep all database URLs and credentials in local or hosting-platform environment variables; never commit `.env`.
 
